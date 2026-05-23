@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://unpkg.com; style-src 'self' 'unsafe-inline' https://unpkg.com; connect-src https://msearch.gsi.go.jp https://cyberjapandata.gsi.go.jp https://mreversegeocoder.gsi.go.jp https://api.open-meteo.com https://api.github.com https://raw.githubusercontent.com; img-src 'self' data: blob: https://cyberjapandata.gsi.go.jp https://*.tile.openstreetmap.org;">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://unpkg.com; style-src 'self' 'unsafe-inline' https://unpkg.com; connect-src https://msearch.gsi.go.jp https://cyberjapandata.gsi.go.jp https://mreversegeocoder.gsi.go.jp https://api.open-meteo.com https://api.github.com https://raw.githubusercontent.com https://www.mlit.go.jp; img-src 'self' data: blob: https://cyberjapandata.gsi.go.jp https://*.tile.openstreetmap.org;">
 <title>ドローン飛行条件チェッカー v6</title>
 <!-- バージョンピン留め済みCDN crossoriginを明示 -->
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
@@ -256,16 +256,11 @@ hr.div{border:none;border-top:1px solid var(--border);margin:18px 0;}
 <div id="tab-check" class="tab-content active">
 <div class="container">
 
-  <!-- 法令改正バナー -->
-  <div class="law-banner" id="law-banner">
-    <div class="law-banner-icon">⚠️</div>
-    <div class="law-banner-body">
-      <strong>法令情報について</strong><br>
-      このアプリの情報は <strong>2025年5月時点</strong> の航空法等に基づいています。ドローン規制は頻繁に改正されます。飛行前に必ず
-      <a href="https://www.mlit.go.jp/koku/koku_fr10_000042.html" target="_blank" rel="noopener">国土交通省の最新情報</a> および
-      <a href="https://dips2.mlit.go.jp/" target="_blank" rel="noopener">DIPS2.0</a> で最新状況を確認してください。
-    </div>
-    <button class="law-banner-close" onclick="closeBanner()" title="閉じる">×</button>
+  <!-- 法令改正チェックバナー（起動時に動的に表示） -->
+  <div class="law-banner" id="law-banner" style="display:none;">
+    <div class="law-banner-icon" id="law-banner-icon">⚠️</div>
+    <div class="law-banner-body" id="law-banner-body"></div>
+    <button class="law-banner-close" onclick="dismissLawBanner()" title="閉じる">×</button>
   </div>
 
   <div class="ver-bar">
@@ -567,10 +562,16 @@ hr.div{border:none;border-top:1px solid var(--border);margin:18px 0;}
 ============================================================ */
 const APP_VER   = '6.0.0';
 const APP_DATE  = '2025-05-23';
-const PILOT_KEY = 'drone_pilot_v2';
-const HIST_KEY  = 'drone_history_v4';
-const PF_KEY    = 'drone_preflight_v1';
-const LOG_KEY   = 'drone_flightlog_v1';
+const PILOT_KEY   = 'drone_pilot_v2';
+const HIST_KEY    = 'drone_history_v4';
+const PF_KEY      = 'drone_preflight_v1';
+const LOG_KEY     = 'drone_flightlog_v1';
+const LAW_KEY     = 'drone_law_check_v1';  // 法令チェック記録
+
+// アプリの法令情報基準日（法令改正があったら更新する）
+const APP_LAW_DATE = '2025-05-23';
+// 無警告で閲覧できる最大日数（この日数を超えたら定期警告）
+const LAW_CHECK_INTERVAL_DAYS = 30;
 
 // GitHubリポジトリ設定
 const GITHUB_USER = 'hayakawa0708';
@@ -594,9 +595,137 @@ let geoLat=null,geoLon=null,autoDID=null,nearestAP=null,majorAP=null;
 let mapMarker=null,currentPref='',currentCity='';
 
 /* ============================================================
-   LAW BANNER
+   法令改正チェックシステム — 3段階フォールバック方式
+   1. 国交省ページ → CORS不可のためGitHub経由で取得
+   2. GitHubのlaw_status.json（GitHub Actionsで自動更新）
+   3. フォールバック：30日ごとに「確認推奨」を表示
 ============================================================ */
-function closeBanner(){document.getElementById('law-banner').style.display='none';}
+
+// バナーを閉じてlocalStorageに記録
+function dismissLawBanner() {
+  const banner = document.getElementById('law-banner');
+  banner.style.display = 'none';
+  // 「今日確認した」として記録（定期警告のリセット）
+  const rec = getLawRecord();
+  rec.dismissedAt = new Date().toISOString();
+  saveLawRecord(rec);
+}
+
+function getLawRecord() {
+  try { return JSON.parse(localStorage.getItem(LAW_KEY) || '{}'); }
+  catch(e) { return {}; }
+}
+function saveLawRecord(rec) {
+  localStorage.setItem(LAW_KEY, JSON.stringify(rec));
+}
+
+function showLawBanner(level, html) {
+  const banner = document.getElementById('law-banner');
+  const icon   = document.getElementById('law-banner-icon');
+  const body   = document.getElementById('law-banner-body');
+  body.innerHTML = html;  // html は内部生成のみ・ユーザー入力なし
+  if (level === 'alert') {
+    banner.style.background = 'rgba(248,113,113,0.10)';
+    banner.style.borderColor = 'rgba(248,113,113,0.45)';
+    icon.textContent = '🚨';
+  } else {
+    banner.style.background = 'rgba(251,191,36,0.08)';
+    banner.style.borderColor = 'rgba(251,191,36,0.35)';
+    icon.textContent = '⚠️';
+  }
+  banner.style.display = 'flex';
+}
+
+async function checkLawUpdate() {
+  const rec = getLawRecord();
+
+  // ── Stage 1: GitHubにlaw_status.jsonがあれば参照 ──
+  // GitHub Actionsで定期的に更新する想定のファイル
+  // フォーマット: { "mlit_last_modified": "2025-05-01", "checked_at": "2025-05-23" }
+  try {
+    const url = GITHUB_RAW_BASE + 'law_status.json';
+    const res = await fetch(url, { cache: 'no-cache' });
+    if (res.ok) {
+      const status = await res.json();
+      const mlitDate   = status.mlit_last_modified || '';
+      const checkedAt  = status.checked_at || '';
+      const savedMlit  = rec.knownMlitDate || '';
+
+      if (mlitDate && mlitDate !== savedMlit) {
+        // 国交省ページの更新日が変わっている
+        showLawBanner('alert',
+          '<strong style="color:var(--red);">⚠ 国土交通省の航空法関連ページが更新されました</strong><br>'
+          + '国交省ページの更新日: <strong>' + esc(mlitDate) + '</strong>　'
+          + '（アプリの法令基準日: ' + APP_LAW_DATE + '）<br>'
+          + '法令・審査要領が改正された可能性があります。飛行前に必ず最新情報を確認してください。<br>'
+          + '<a href="https://www.mlit.go.jp/koku/koku_fr10_000042.html" target="_blank" rel="noopener">国交省 飛行許可・承認手続きページ ↗</a>'
+          + '　<a href="https://dips2.mlit.go.jp/" target="_blank" rel="noopener">DIPS2.0 ↗</a>'
+        );
+        // 新しい更新日を記録
+        rec.knownMlitDate = mlitDate;
+        rec.alertShownAt  = new Date().toISOString();
+        saveLawRecord(rec);
+        return; // Stage 1成功
+      }
+
+      if (mlitDate && mlitDate === savedMlit) {
+        // 変化なし → 何も表示しない
+        saveLawRecord({...rec, lastCheckedAt: new Date().toISOString()});
+        return;
+      }
+    }
+  } catch(e) {
+    // Stage 1失敗 → Stage 2へ
+  }
+
+  // ── Stage 2: GitHubのCHANGELOGで法令改正記録を確認 ──
+  try {
+    const url = GITHUB_RAW_BASE + 'CHANGELOG.md';
+    const res = await fetch(url, { cache: 'no-cache' });
+    if (res.ok) {
+      const text = await res.text();
+      // 法令改正対応履歴セクションの最新日付を取得
+      const lawMatch = text.match(/\|\s*(\d{4}-\d{2}-\d{2})\s*\|[^|]+法令/);
+      if (lawMatch) {
+        const latestLawDate = lawMatch[1];
+        const savedLawDate  = rec.knownChangelogLawDate || '';
+        if (latestLawDate > APP_LAW_DATE && latestLawDate !== savedLawDate) {
+          showLawBanner('alert',
+            '<strong style="color:var(--red);">⚠ アプリの法令情報が更新されています</strong><br>'
+            + 'CHANGELOGに新しい法令改正対応（' + esc(latestLawDate) + '）が記録されています。<br>'
+            + 'アプリをアップデートして最新の判定ロジックを適用してください。<br>'
+            + '<a href="https://github.com/' + esc(GITHUB_USER) + '/' + esc(GITHUB_REPO) + '" '
+            + 'target="_blank" rel="noopener">GitHubで確認 ↗</a>'
+            + '　update.bat / update.command で更新できます。'
+          );
+          rec.knownChangelogLawDate = latestLawDate;
+          saveLawRecord(rec);
+          return;
+        }
+      }
+    }
+  } catch(e) {
+    // Stage 2失敗 → Stage 3へ
+  }
+
+  // ── Stage 3: 30日ごとに「定期確認推奨」を表示 ──
+  const dismissedAt = rec.dismissedAt ? new Date(rec.dismissedAt) : null;
+  const daysSince = dismissedAt
+    ? (Date.now() - dismissedAt.getTime()) / 86400000
+    : LAW_CHECK_INTERVAL_DAYS + 1; // 記録がなければ即表示
+
+  if (daysSince >= LAW_CHECK_INTERVAL_DAYS) {
+    showLawBanner('warn',
+      '<strong>📋 定期確認のお知らせ</strong>　'
+      + '前回の法令確認から' + Math.floor(daysSince) + '日が経過しました。<br>'
+      + 'ドローン規制は頻繁に改正されます。飛行前に必ず最新情報をご確認ください。<br>'
+      + '<a href="https://www.mlit.go.jp/koku/koku_fr10_000042.html" target="_blank" rel="noopener">国交省 最新情報 ↗</a>'
+      + '　<a href="https://dips2.mlit.go.jp/" target="_blank" rel="noopener">DIPS2.0 ↗</a>'
+      + '　確認後は「×」を押して記録してください。'
+    );
+  }
+  // 30日未満 → 何も表示しない（正常）
+}
 
 /* ============================================================
    AIRPORTS
@@ -923,67 +1052,114 @@ function analyze(){
 
   /* チェックリスト */
   const reqs=[];
-  reqs.push({t:'ok',title:'機体登録（全飛行必須）',detail:'100g以上すべての機体が対象。DIPS2.0で登録し機体に登録記号を表示する。未登録は罰則あり。'});
-  reqs.push({t:'ok',title:'飛行前の空域確認（全飛行必須）',detail:'DIPS2.0またはDroneroute・地理院地図で緊急用務空域・飛行禁止空域を飛行直前に確認する。'});
-  if(did){reqs.push(hasCert2||hasCert1?{t:'warn',title:'DID上空：DIPS2.0で許可申請',detail:'二等（または一等）資格を保有しているため申請要件は満たします。飛行10営業日前までに申請。'}:{t:'stop',title:'DID上空：DIPS2.0で許可申請＋資格確認要',detail:'飛行10営業日前までに申請必須。技能証明書を添付すること。'});}
-  if(inMaj300&&majorAP){reqs.push({t:'stop',title:majorAP.name+' 300m圏内：小型無人機等飛行禁止法の追加手続き',detail:'①空港管理者の同意取得 ②都道府県公安委員会への事前通報が必要（航空法申請とは別）。約'+Math.round(majorAP.dist)+'m地点。'});}
-  if(inAP9k&&nearestAP){reqs.push({t:'warn',title:nearestAP.name+' 9km圏内：DIPS2.0で許可申請（ⅡA）',detail:'空港から約'+(nearestAP.dist/1000).toFixed(1)+'km。空港事務所への事前連絡・調整も必要。飛行10営業日前まで。'});}
-  if(above150){reqs.push({t:'warn',title:'高度'+alt+'m：150m以上は許可申請（ⅡA）',detail:'有人航空機との空域調整も必要。申請書に飛行経路図・最高高度を明記すること。'});}
-  if(night){reqs.push(hasNight&&(hasCert2||hasCert1)?{t:'ok',title:'夜間飛行：夜間限定解除保有のため対応可 ✓',detail:'灯火の装備と飛行マニュアルへの夜間手順記載が必要。DID・空港圏内の場合は別途申請も必要。'}:{t:'warn',title:'夜間飛行：DIPS2.0で承認申請が必要',detail:'夜間限定解除または個別承認申請が必要。'});}
-  if(bvlos){reqs.push(hasBvlos&&(hasCert2||hasCert1)?{t:'ok',title:'目視外飛行：目視外限定解除保有のため対応可 ✓',detail:'第三者が立ち入る可能性がある経路では立入管理措置が必要。'}:{t:'warn',title:'目視外飛行：DIPS2.0で承認申請が必要',detail:'目視外限定解除または個別承認申請が必要。'});}
-  if(close){reqs.push({t:'warn',title:'人・物件30m未満：DIPS2.0で承認申請',detail:'補助者の配置と立入管理措置が前提。'});}
-  if(crowd){reqs.push({t:'stop',title:'第三者上空（立入管理なし）：カテゴリーⅢ — 一等資格が必要',detail:'二等資格では原則不可。一等操縦士＋第一種機体認証＋国土交通大臣の許可が必要。'});}
-  if(event){reqs.push({t:'stop',title:'催し物上空：カテゴリーⅡA 個別許可申請（必須）',detail:'主催者の承諾書類・立入管理計画を含む申請書をDIPS2.0で提出。飛行10営業日前まで。'});}
-  if(drop){reqs.push({t:'stop',title:'物件投下・危険物輸送：カテゴリーⅡA 個別許可申請',detail:'農薬散布含む。品目ごとの特定飛行マニュアル作成・提出が必要。'});}
-  if(agri){reqs.push({t:'stop',title:'農薬散布：農水省ガイドライン＋DIPS2.0申請',detail:'農薬取締法に基づく適正使用が必要。市区町村農業委員会への事前届出と近隣農家への周知が必要。'});}
-  if(road){reqs.push({t:'warn',title:'道路使用：管轄警察署への道路使用許可申請',detail:'航空法の申請とは別に道路交通法に基づく申請が必要。許可まで1〜2週間。'});}
-  if(heavy){reqs.push({t:'stop',title:'25kg以上の機体：カテゴリーⅡA 個別許可申請',detail:'機体仕様書・整備記録・保険の加入証明等を添付すること。'});}
-  if(restricted){reqs.push({t:'stop',title:'特定重要施設周辺：原則飛行禁止（小型無人機等飛行禁止法）',detail:'管轄警察・施設管理者への事前申請・通報が必要。許可されないケースが多い。'});}
-  if(emergency){reqs.push({t:'stop',title:'緊急用務空域：飛行禁止',detail:'国土交通大臣が指定した緊急用務空域。指定解除まで飛行不可。'});}
-  if(river){reqs.push({t:'warn',title:'河川・湖沼・海岸：管理者への事前確認',detail:'一級河川は国交省河川事務所、二級河川は都道府県、海上は海上保安部へ事前確認が必要。'});}
-  if(park){reqs.push({t:'warn',title:'公園・国立公園：公園管理者への許可申請',detail:'都市公園は各自治体公園管理事務所、国立公園は環境省または都道府県自然保護課へ。'});}
-  if(!hasIns&&isSpecial){reqs.push({t:'warn',title:'第三者損害賠償保険：加入を強く推奨',detail:'申請時に加入状況の記載を求められる場合があります。'});}
-  reqs.push({t:'ok',title:'飛行計画の通報（全飛行必須）',detail:'DIPS2.0で飛行計画を登録・通報。特定飛行の場合は飛行前日〜当日に通報を完了させること。'});
-  reqs.push({t:'ok',title:'飛行記録の作成・保存（全飛行必須）',detail:'飛行日時・場所・操縦者・機体番号・飛行時間・異常有無を毎回記録し一定期間保存すること。'});
+  reqs.push({t:'ok',key:'reg',title:'機体登録（全飛行必須）',detail:'100g以上すべての機体が対象。DIPS2.0で登録し機体に登録記号を表示する。未登録は罰則あり。'});
+  reqs.push({t:'ok',key:'airspace',title:'飛行前の空域確認（全飛行必須）',detail:'DIPS2.0またはDroneroute・地理院地図で緊急用務空域・飛行禁止空域を飛行直前に確認する。'});
+  if(did){reqs.push(hasCert2||hasCert1?{t:'warn',key:'did',title:'DID上空：DIPS2.0で許可申請',detail:'二等（または一等）資格を保有しているため申請要件は満たします。飛行10営業日前までに申請。'}:{t:'stop',key:'did',title:'DID上空：DIPS2.0で許可申請＋資格確認要',detail:'飛行10営業日前までに申請必須。技能証明書を添付すること。'});}
+  if(inMaj300&&majorAP){reqs.push({t:'stop',key:'major300',title:majorAP.name+' 300m圏内：小型無人機等飛行禁止法の追加手続き',detail:'①空港管理者の同意取得 ②都道府県公安委員会への事前通報が必要（航空法申請とは別）。約'+Math.round(majorAP.dist)+'m地点。'});}
+  if(inAP9k&&nearestAP){reqs.push({t:'warn',key:'ap9k',title:nearestAP.name+' 9km圏内：DIPS2.0で許可申請（ⅡA）',detail:'空港から約'+(nearestAP.dist/1000).toFixed(1)+'km。空港事務所への事前連絡・調整も必要。飛行10営業日前まで。'});}
+  if(above150){reqs.push({t:'warn',key:'alt150',title:'高度'+alt+'m：150m以上は許可申請（ⅡA）',detail:'有人航空機との空域調整も必要。申請書に飛行経路図・最高高度を明記すること。'});}
+  if(night){reqs.push(hasNight&&(hasCert2||hasCert1)?{t:'ok',key:'night',title:'夜間飛行：夜間限定解除保有のため対応可 ✓',detail:'灯火の装備と飛行マニュアルへの夜間手順記載が必要。DID・空港圏内の場合は別途申請も必要。'}:{t:'warn',key:'night',title:'夜間飛行：DIPS2.0で承認申請が必要',detail:'夜間限定解除または個別承認申請が必要。'});}
+  if(bvlos){reqs.push(hasBvlos&&(hasCert2||hasCert1)?{t:'ok',key:'bvlos',title:'目視外飛行：目視外限定解除保有のため対応可 ✓',detail:'第三者が立ち入る可能性がある経路では立入管理措置が必要。'}:{t:'warn',key:'bvlos',title:'目視外飛行：DIPS2.0で承認申請が必要',detail:'目視外限定解除または個別承認申請が必要。'});}
+  if(close){reqs.push({t:'warn',key:'close',title:'人・物件30m未満：DIPS2.0で承認申請',detail:'補助者の配置と立入管理措置が前提。'});}
+  if(crowd){reqs.push({t:'stop',key:'crowd',title:'第三者上空（立入管理なし）：カテゴリーⅢ — 一等資格が必要',detail:'二等資格では原則不可。一等操縦士＋第一種機体認証＋国土交通大臣の許可が必要。'});}
+  if(event){reqs.push({t:'stop',key:'event',title:'催し物上空：カテゴリーⅡA 個別許可申請（必須）',detail:'主催者の承諾書類・立入管理計画を含む申請書をDIPS2.0で提出。飛行10営業日前まで。'});}
+  if(drop){reqs.push({t:'stop',key:'drop',title:'物件投下・危険物輸送：カテゴリーⅡA 個別許可申請',detail:'農薬散布含む。品目ごとの特定飛行マニュアル作成・提出が必要。'});}
+  if(agri){reqs.push({t:'stop',key:'agri',title:'農薬散布：農水省ガイドライン＋DIPS2.0申請',detail:'農薬取締法に基づく適正使用が必要。市区町村農業委員会への事前届出と近隣農家への周知が必要。'});}
+  if(road){reqs.push({t:'warn',key:'road',title:'道路使用：管轄警察署への道路使用許可申請',detail:'航空法の申請とは別に道路交通法に基づく申請が必要。許可まで1〜2週間。'});}
+  if(heavy){reqs.push({t:'stop',key:'heavy',title:'25kg以上の機体：カテゴリーⅡA 個別許可申請',detail:'機体仕様書・整備記録・保険の加入証明等を添付すること。'});}
+  if(restricted){reqs.push({t:'stop',key:'restricted',title:'特定重要施設周辺：原則飛行禁止（小型無人機等飛行禁止法）',detail:'管轄警察・施設管理者への事前申請・通報が必要。許可されないケースが多い。'});}
+  if(emergency){reqs.push({t:'stop',key:'emergency',title:'緊急用務空域：飛行禁止',detail:'国土交通大臣が指定した緊急用務空域。指定解除まで飛行不可。'});}
+  if(river){reqs.push({t:'warn',key:'river',title:'河川・湖沼・海岸：管理者への事前確認',detail:'一級河川は国交省河川事務所、二級河川は都道府県、海上は海上保安部へ事前確認が必要。'});}
+  if(park){reqs.push({t:'warn',key:'park',title:'公園・国立公園：公園管理者への許可申請',detail:'都市公園は各自治体公園管理事務所、国立公園は環境省または都道府県自然保護課へ。'});}
+  if(!hasIns&&isSpecial){reqs.push({t:'warn',key:'ins',title:'第三者損害賠償保険：加入を強く推奨',detail:'申請時に加入状況の記載を求められる場合があります。'});}
+  reqs.push({t:'ok',key:'notif',title:'飛行計画の通報（全飛行必須）',detail:'DIPS2.0で飛行計画を登録・通報。特定飛行の場合は飛行前日〜当日に通報を完了させること。'});
+  reqs.push({t:'ok',key:'logbook',title:'飛行記録の作成・保存（全飛行必須）',detail:'飛行日時・場所・操縦者・機体番号・飛行時間・異常有無を毎回記録し一定期間保存すること。'});
 
-  /* 申請先一覧 */
+  /* 申請先一覧 — reqKeysでチェックリスト項目と紐付け */
   const city=currentCity||currentPref||'（飛行地）';
   function sLink(q,lbl){const u='https://www.google.com/search?q='+encodeURIComponent(q);return '<a href="'+esc(u)+'" target="_blank" rel="noopener" class="search-link">🔍 '+esc(lbl)+'</a>';}
   const subs=[];
   if(did||inAP9k||above150||night||bvlos||close||event||drop||heavy||crowd||agri){
-    subs.push({reason:'航空法に基づく特定飛行',law:'航空法 第132条の85・第132条の86',to:'国土交通省（DIPS2.0）',detail:'飛行開始の10営業日前（土日祝除く）までにオンライン申請。',deadline:'飛行10営業日前まで',url:'https://dips2.mlit.go.jp/',links:[]});
+    const rk=['did','ap9k','alt150','night','bvlos','close','event','drop','heavy','crowd','agri'].filter(k=>reqs.some(r=>r.key===k));
+    subs.push({reason:'航空法に基づく特定飛行',law:'航空法 第132条の85・第132条の86',to:'国土交通省（DIPS2.0）',detail:'飛行開始の10営業日前（土日祝除く）までにオンライン申請。',deadline:'飛行10営業日前まで',url:'https://dips2.mlit.go.jp/',links:[],reqKeys:rk});
   }
   if(inMaj300&&majorAP){
-    subs.push({reason:majorAP.name+'周辺300m圏内の飛行',law:'小型無人機等飛行禁止法 第2条・第9条',to:'都道府県公安委員会（警察）＋空港管理者',detail:'①管轄警察本部または空港警察署へ通報 ②空港管理者の同意書を取得。',deadline:'飛行前まで（余裕をもって）',url:'https://www.npa.go.jp/',links:[sLink(city+' 警察署 電話番号',city+' 警察署'),sLink(majorAP.name+' 空港管理者 問い合わせ','空港管理者')]});
+    subs.push({reason:majorAP.name+'周辺300m圏内の飛行',law:'小型無人機等飛行禁止法 第2条・第9条',to:'都道府県公安委員会（警察）＋空港管理者',detail:'①管轄警察本部または空港警察署へ通報 ②空港管理者の同意書を取得。',deadline:'飛行前まで（余裕をもって）',url:'https://www.npa.go.jp/',links:[sLink(city+' 警察署 電話番号',city+' 警察署'),sLink(majorAP.name+' 空港管理者 問い合わせ','空港管理者')],reqKeys:['major300']});
   }
-  if(restricted){subs.push({reason:'特定重要施設周辺の飛行',law:'小型無人機等飛行禁止法 第2条・第9条',to:'管轄警察署＋施設管理者',detail:'原則飛行禁止。管轄警察署への事前通報と施設管理者の許可が必要。',deadline:'飛行前（許可が下りない場合あり）',url:'https://www.npa.go.jp/',links:[sLink(city+' 警察署 住所 電話番号',city+' 管轄警察署')]});}
-  if(road){subs.push({reason:'公道上・道路際からの離発着',law:'道路交通法 第77条',to:'管轄警察署（交通課）',detail:'管轄警察署の交通課へ申請。申請書・図面・飛行計画書を添付。',deadline:'飛行1〜2週間前まで',url:'https://www.npa.go.jp/bureau/traffic/content/road_use.pdf',links:[sLink(city+' 警察署 交通課 道路使用許可',city+' 警察署 交通課')]});}
-  if(river){subs.push({reason:'河川・湖沼・海岸上空の飛行',law:'河川法 / 海岸法',to:'河川管理者（国交省河川事務所・都道府県）または海上保安庁',detail:'一級河川は国交省河川事務所、二級河川は都道府県担当課、海上は海上保安部へ。',deadline:'飛行前（早めに問い合わせ）',url:'https://www.mlit.go.jp/river/index.html',links:[sLink(city+' 河川事務所 電話番号',city+' 河川事務所'),sLink(city+' 海上保安部 電話番号','最寄り 海上保安部')]});}
-  if(park){subs.push({reason:'公園・自然公園内での飛行',law:'都市公園法 / 自然公園法',to:'公園管理者（各自治体）または環境省・都道府県',detail:'都市公園は各市区町村公園管理事務所へ。国立公園は環境省または都道府県自然保護課へ。',deadline:'飛行前（数週間かかる場合あり）',url:'https://www.env.go.jp/nature/np/intro.html',links:[sLink(city+' 公園管理事務所 ドローン 許可',city+' 公園管理事務所')]});}
-  if(agri){subs.push({reason:'農薬散布',law:'農薬取締法',to:'市区町村農業委員会・都道府県農業改良普及センター',detail:'農薬の適正使用義務あり。散布前に近隣農家・住民へ周知。',deadline:'散布前（余裕をもって）',url:'https://www.maff.go.jp/j/nouyaku/',links:[sLink(city+' 農業委員会 電話番号',city+' 農業委員会')]});}
+  if(restricted){subs.push({reason:'特定重要施設周辺の飛行',law:'小型無人機等飛行禁止法 第2条・第9条',to:'管轄警察署＋施設管理者',detail:'原則飛行禁止。管轄警察署への事前通報と施設管理者の許可が必要。',deadline:'飛行前（許可が下りない場合あり）',url:'https://www.npa.go.jp/',links:[sLink(city+' 警察署 住所 電話番号',city+' 管轄警察署')],reqKeys:['restricted']});}
+  if(road){subs.push({reason:'公道上・道路際からの離発着',law:'道路交通法 第77条',to:'管轄警察署（交通課）',detail:'管轄警察署の交通課へ申請。申請書・図面・飛行計画書を添付。',deadline:'飛行1〜2週間前まで',url:'https://www.npa.go.jp/bureau/traffic/content/road_use.pdf',links:[sLink(city+' 警察署 交通課 道路使用許可',city+' 警察署 交通課')],reqKeys:['road']});}
+  if(river){subs.push({reason:'河川・湖沼・海岸上空の飛行',law:'河川法 / 海岸法',to:'河川管理者（国交省河川事務所・都道府県）または海上保安庁',detail:'一級河川は国交省河川事務所、二級河川は都道府県担当課、海上は海上保安部へ。',deadline:'飛行前（早めに問い合わせ）',url:'https://www.mlit.go.jp/river/index.html',links:[sLink(city+' 河川事務所 電話番号',city+' 河川事務所'),sLink(city+' 海上保安部 電話番号','最寄り 海上保安部')],reqKeys:['river']});}
+  if(park){subs.push({reason:'公園・自然公園内での飛行',law:'都市公園法 / 自然公園法',to:'公園管理者（各自治体）または環境省・都道府県',detail:'都市公園は各市区町村公園管理事務所へ。国立公園は環境省または都道府県自然保護課へ。',deadline:'飛行前（数週間かかる場合あり）',url:'https://www.env.go.jp/nature/np/intro.html',links:[sLink(city+' 公園管理事務所 ドローン 許可',city+' 公園管理事務所')],reqKeys:['park']});}
+  if(agri){subs.push({reason:'農薬散布',law:'農薬取締法',to:'市区町村農業委員会・都道府県農業改良普及センター',detail:'農薬の適正使用義務あり。散布前に近隣農家・住民へ周知。',deadline:'散布前（余裕をもって）',url:'https://www.maff.go.jp/j/nouyaku/',links:[sLink(city+' 農業委員会 電話番号',city+' 農業委員会')],reqKeys:['agri']});}
 
   /* ── HTML生成 ── */
-  const stopN=reqs.filter(r=>r.t==='stop').length;
-  const warnN=reqs.filter(r=>r.t==='warn').length;
-  const okN=reqs.filter(r=>r.t==='ok').length;
-  const dotMap={ok:['dok','✓'],warn:['dwarn','!'],stop:['dstop','✕']};
+  const stopN = reqs.filter(r=>r.t==='stop').length;
+  const warnN = reqs.filter(r=>r.t==='warn').length;
+  const okN   = reqs.filter(r=>r.t==='ok').length;
 
-  let listHtml='';
-  reqs.forEach(r=>{const[cls,sym]=dotMap[r.t];listHtml+='<div class="req-item"><div class="req-dot '+cls+'">'+sym+'</div><div><div class="req-t">'+esc(r.title)+'</div><div class="req-d">'+esc(r.detail)+'</div></div></div>';});
+  // カテゴリー分類
+  const mandatory = reqs.filter(r=>r.t==='ok');
+  const apply     = reqs.filter(r=>r.t==='warn');
+  const caution   = reqs.filter(r=>r.t==='stop');
 
-  let subHtml='';
+  // セクション生成ヘルパー
+  function reqSection(label, icon, items, headerBg, dotCls, dotSym) {
+    if(!items.length) return '';
+    const rows = items.map(r=>{
+      // 対応する申請先番号を探してバッジ表示
+      const linkedNos = [];
+      subs.forEach((s,si)=>{ if(s.reqKeys&&s.reqKeys.includes(r.key)) linkedNos.push(si+1); });
+      const badge = linkedNos.length
+        ? '<span style="display:inline-flex;align-items:center;gap:3px;font-size:10px;'
+          + 'font-family:var(--mono);background:rgba(56,189,248,0.12);color:var(--accent);'
+          + 'border:1px solid rgba(56,189,248,0.25);border-radius:4px;padding:1px 6px;margin-left:6px;">'
+          + '→ 申請先 ' + linkedNos.map(n=>'No.'+n).join('・') + '</span>'
+        : '';
+      return '<div class="req-item">'
+        + '<div class="req-dot '+dotCls+'">'+dotSym+'</div>'
+        + '<div style="flex:1;"><div class="req-t">'+esc(r.title)+badge+'</div>'
+        + '<div class="req-d">'+esc(r.detail)+'</div></div></div>';
+    }).join('');
+    return '<div class="req-card">'
+      + '<div class="req-head" style="background:'+headerBg+';color:#fff;letter-spacing:.06em;">'
+      + icon + '&nbsp; ' + label + '&ensp;<span style="font-weight:400;font-size:11px;opacity:.85;">（'+items.length+'件）</span>'
+      + '</div>' + rows + '</div>';
+  }
+
+  let listHtml = '';
+  listHtml += reqSection('全飛行に必須の確認・実施事項', '✅', mandatory, 'rgba(34,211,161,0.6)', 'dok', '✓');
+  listHtml += reqSection('申請・手続きが必要な事項',     '📋', apply,    'rgba(56,189,248,0.6)', 'dwarn', '!');
+  listHtml += reqSection('注意・禁止事項',               '⛔', caution,  'rgba(248,113,113,0.65)', 'dstop', '✕');
+
+  // 申請先一覧
+  let subHtml = '';
   if(subs.length){
     let rows='';
     subs.forEach((s,i)=>{
-      const linksHtml=s.links&&s.links.length?'<div class="search-links">'+s.links.join('')+'</div>':'';
-      rows+='<div class="sub-item"><div class="sub-num">'+(i+1)+'</div>'
-        +'<div class="sub-body"><div class="sub-reason">'+esc(s.reason)+'</div><div class="sub-law">'+esc(s.law)+'</div></div>'
-        +'<div class="sub-dest"><div class="sub-to">📮 '+esc(s.to)+'</div><div class="sub-detail">'+esc(s.detail)+'</div>'
-        +'<span class="sub-deadline">⏱ '+esc(s.deadline)+'</span>'
-        +' <a href="'+esc(s.url)+'" target="_blank" rel="noopener" style="font-size:11px;color:var(--accent);text-decoration:none;margin-left:6px;">公式サイト ↗</a>'
-        +linksHtml+'</div></div>';
+      const linksHtml = s.links&&s.links.length ? '<div class="search-links">'+s.links.join('')+'</div>' : '';
+      // 対応するチェックリスト項目名を取得
+      const relTitles = (s.reqKeys||[])
+        .map(k=>reqs.find(r=>r.key===k))
+        .filter(Boolean)
+        .map(r=>r.title.split('：')[0].split('（')[0].trim())
+        .filter((v,i,a)=>a.indexOf(v)===i); // 重複除去
+      const relBadge = relTitles.length
+        ? '<div style="font-size:11px;color:var(--accent);margin-bottom:5px;display:flex;align-items:center;gap:4px;flex-wrap:wrap;">'
+          + '<span style="font-family:var(--mono);">📋 チェックリスト対応:</span>'
+          + relTitles.map(t=>'<span style="background:rgba(56,189,248,0.1);border:1px solid rgba(56,189,248,0.25);border-radius:4px;padding:1px 7px;">'+esc(t)+'</span>').join('')
+          + '</div>'
+        : '';
+      rows += '<div class="sub-item"><div class="sub-num">'+(i+1)+'</div>'
+        + '<div class="sub-body"><div class="sub-reason">'+esc(s.reason)+'</div>'
+        + '<div class="sub-law">'+esc(s.law)+'</div></div>'
+        + '<div class="sub-dest">'+relBadge
+        + '<div class="sub-to">📮 '+esc(s.to)+'</div>'
+        + '<div class="sub-detail">'+esc(s.detail)+'</div>'
+        + '<span class="sub-deadline">⏱ '+esc(s.deadline)+'</span>'
+        + ' <a href="'+esc(s.url)+'" target="_blank" rel="noopener" style="font-size:11px;color:var(--accent);text-decoration:none;margin-left:6px;">公式サイト ↗</a>'
+        + linksHtml + '</div></div>';
     });
-    subHtml='<div class="sub-card"><div class="sub-head">SUBMISSION LIST — 申請先一覧</div>'+rows+'</div>';
+    subHtml = '<div class="sub-card"><div class="sub-head">申請先一覧</div>'+rows+'</div>';
   }
 
   /* 申請書下書き */
@@ -1060,10 +1236,12 @@ function analyze(){
   }
 
   const html='<div class="cat-header"><span class="cat-badge '+catKey+'">'+esc(catLabel)+'</span><div class="cat-desc">'+esc(catDesc)+'</div></div>'
-    +'<div class="stat-grid"><div class="stat-c"><div class="stat-n" style="color:'+(stopN>0?'var(--red)':'var(--green)')+'">'+stopN+'</div><div class="stat-l">禁止・要注意</div></div>'
-    +'<div class="stat-c"><div class="stat-n" style="color:'+(warnN>0?'var(--amber)':'var(--green)')+'">'+warnN+'</div><div class="stat-l">申請・手続き</div></div>'
-    +'<div class="stat-c"><div class="stat-n" style="color:var(--green)">'+okN+'</div><div class="stat-l">確認・実施事項</div></div></div>'
-    +'<div class="req-card"><div class="req-head">CHECKLIST — 必要な手続き・対応一覧</div>'+listHtml+'</div>'
+    +'<div class="stat-grid">'
+    +'<div class="stat-c"><div class="stat-n" style="color:var(--green)">'+okN+'</div><div class="stat-l">✅ 全飛行必須</div></div>'
+    +'<div class="stat-c"><div class="stat-n" style="color:'+(warnN>0?'var(--accent)':'var(--green)')+'">'+warnN+'</div><div class="stat-l">📋 申請・手続き</div></div>'
+    +'<div class="stat-c"><div class="stat-n" style="color:'+(stopN>0?'var(--red)':'var(--green)')+'">'+stopN+'</div><div class="stat-l">⛔ 注意・禁止</div></div>'
+    +'</div>'
+    +listHtml
     +subHtml
     +draftHtml
     +flowHtml
@@ -1756,8 +1934,9 @@ window.addEventListener('DOMContentLoaded',()=>{
   initMap();loadPilot();renderPilotSummary();renderPreflight();renderLogList();
   const today = new Date().toISOString().slice(0,10);
   document.getElementById('log-date').value = today;
-  // 起動時にGitHubバージョンチェック（失敗しても動作に影響なし）
+  // 起動時チェック（失敗しても動作に影響なし）
   checkLatestVersion();
+  checkLawUpdate();
 });
 </script>
 </body>
