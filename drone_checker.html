@@ -1,0 +1,1764 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://unpkg.com; style-src 'self' 'unsafe-inline' https://unpkg.com; connect-src https://msearch.gsi.go.jp https://cyberjapandata.gsi.go.jp https://mreversegeocoder.gsi.go.jp https://api.open-meteo.com https://api.github.com https://raw.githubusercontent.com; img-src 'self' data: blob: https://cyberjapandata.gsi.go.jp https://*.tile.openstreetmap.org;">
+<title>ドローン飛行条件チェッカー v6</title>
+<!-- バージョンピン留め済みCDN crossoriginを明示 -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+<script src="https://unpkg.com/xlsx@0.18.5/dist/xlsx.full.min.js" crossorigin=""></script>
+<style>
+:root {
+  --bg:#0a0e1a; --bg2:#111827; --bg3:#1a2236;
+  --border:rgba(56,189,248,0.13); --border2:rgba(56,189,248,0.32);
+  --accent:#38bdf8; --accent2:#0ea5e9;
+  --text:#e2e8f0; --text2:#94a3b8; --text3:#64748b;
+  --green:#22d3a1; --green-bg:rgba(34,211,161,0.10);
+  --amber:#fbbf24; --amber-bg:rgba(251,191,36,0.10);
+  --red:#f87171;   --red-bg:rgba(248,113,113,0.10);
+  --blue:#60a5fa;  --blue-bg:rgba(96,165,250,0.10);
+  --purple:#a78bfa; --purple-bg:rgba(167,139,250,0.10);
+  --r:8px; --rl:14px;
+  --font:system-ui,"Hiragino Kaku Gothic ProN","Hiragino Sans","Yu Gothic UI","Meiryo UI",Meiryo,sans-serif;
+  --mono:"Courier New","Osaka-Mono",monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:14px;line-height:1.7;min-height:100vh;}
+
+/* ── TABS ── */
+.tab-bar{display:flex;background:var(--bg2);border-bottom:1px solid var(--border2);position:sticky;top:0;z-index:1000;}
+.tab-btn{flex:1;padding:12px 4px;font-size:12px;font-weight:500;font-family:var(--font);background:transparent;border:none;color:var(--text3);cursor:pointer;border-bottom:2px solid transparent;transition:all .18s;}
+.tab-btn.active{color:var(--accent);border-bottom-color:var(--accent);}
+.tab-btn:hover:not(.active){color:var(--text2);}
+.tab-content{display:none;}
+.tab-content.active{display:block;animation:fadeIn .25s ease;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── LAYOUT ── */
+.container{max-width:880px;margin:0 auto;padding:20px 16px 80px;}
+
+/* ── LAW UPDATE BANNER ── */
+.law-banner{background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.35);border-radius:var(--r);padding:10px 16px;margin-bottom:16px;display:flex;align-items:flex-start;gap:10px;}
+.law-banner-icon{font-size:16px;flex-shrink:0;margin-top:1px;}
+.law-banner-body{flex:1;font-size:12px;color:var(--text2);line-height:1.7;}
+.law-banner-body strong{color:var(--amber);font-weight:500;}
+.law-banner-body a{color:var(--accent);text-decoration:none;}
+.law-banner-body a:hover{text-decoration:underline;}
+.law-banner-close{background:transparent;border:none;color:var(--text3);cursor:pointer;font-size:16px;padding:0 4px;flex-shrink:0;}
+
+/* ── VER BAR ── */
+.ver-bar{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:7px 14px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;}
+.ver-txt{font-size:11px;color:var(--text3);font-family:var(--mono);}
+.ver-txt strong{color:var(--amber);}
+.ver-link{font-size:11px;color:var(--accent);text-decoration:none;}
+.ver-link:hover{text-decoration:underline;}
+
+/* ── LABELS ── */
+.slabel{font-size:10px;font-weight:700;letter-spacing:.12em;color:var(--text3);text-transform:uppercase;margin-bottom:8px;font-family:var(--mono);}
+
+/* ── CARD ── */
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--rl);padding:1rem 1.2rem;margin-bottom:12px;}
+.card-title{font-size:13px;font-weight:500;color:var(--text2);margin-bottom:10px;}
+
+/* ── CATEGORY LEGEND ── */
+.cat-legend{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:7px;margin-bottom:14px;}
+.legend-item{border-radius:var(--r);padding:8px 11px;border:1px solid transparent;}
+.leg-1 {background:var(--green-bg);border-color:rgba(34,211,161,.25);}
+.leg-2b{background:var(--blue-bg); border-color:rgba(96,165,250,.25);}
+.leg-2a{background:var(--amber-bg);border-color:rgba(251,191,36,.25);}
+.leg-3 {background:var(--red-bg);  border-color:rgba(248,113,113,.3);}
+.leg-ng{background:rgba(100,116,139,.08);border-color:rgba(100,116,139,.25);}
+.leg-title{font-size:11px;font-weight:700;font-family:var(--mono);margin-bottom:2px;}
+.leg-1 .leg-title{color:var(--green);}  .leg-2b .leg-title{color:var(--blue);}
+.leg-2a .leg-title{color:var(--amber);} .leg-3 .leg-title{color:var(--red);}
+.leg-ng .leg-title{color:var(--text3);}
+.leg-desc{font-size:11px;color:var(--text2);line-height:1.5;}
+
+/* ── MAP ── */
+.map-wrap{border-radius:var(--r);overflow:hidden;border:1px solid var(--border2);margin-top:10px;position:relative;}
+#gsi-map{height:300px;width:100%;background:var(--bg3);}
+.map-hint{position:absolute;top:8px;left:50%;transform:translateX(-50%);background:rgba(10,14,26,0.82);color:var(--accent);font-size:11px;padding:4px 12px;border-radius:20px;pointer-events:none;white-space:nowrap;z-index:500;border:1px solid var(--border2);}
+.map-hint.hidden{display:none;}
+.leaflet-container{background:#1a2236;}
+
+/* ── FORM ── */
+.field{margin-bottom:10px;}
+.field label{display:block;font-size:12px;color:var(--text3);margin-bottom:4px;}
+.field input,.field select,.field textarea{width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--r);padding:8px 11px;color:var(--text);font-size:13px;font-family:var(--font);outline:none;transition:border-color .15s;}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--accent);}
+.field select option{background:var(--bg3);}
+.field textarea{resize:vertical;min-height:50px;}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+@media(max-width:520px){.field-row{grid-template-columns:1fr;}}
+
+/* ── ADDRESS ── */
+.addr-row{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:flex-end;}
+.geo-btn{padding:8px 13px;background:var(--blue-bg);border:1px solid rgba(96,165,250,.35);color:var(--blue);border-radius:var(--r);font-size:13px;font-family:var(--font);cursor:pointer;white-space:nowrap;transition:opacity .15s;}
+.geo-btn:hover{opacity:.8;}
+.geo-result{margin-top:6px;font-size:12px;color:var(--text3);display:none;}
+.geo-result.ok{color:var(--green);} .geo-result.err{color:var(--red);}
+
+/* ── DETECT BADGES ── */
+.detect-row{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px;display:none;}
+.dbadge{display:inline-flex;align-items:center;gap:4px;font-size:11px;padding:4px 10px;border-radius:20px;font-family:var(--mono);}
+.db-spin{background:var(--amber-bg);color:var(--amber);border:1px solid rgba(251,191,36,.3);}
+.db-yes{background:var(--red-bg);color:var(--red);border:1px solid rgba(248,113,113,.35);}
+.db-no {background:var(--green-bg);color:var(--green);border:1px solid rgba(34,211,161,.3);}
+.db-unk{background:rgba(100,116,139,.10);color:var(--text3);border:1px solid rgba(100,116,139,.2);}
+
+/* ── CHECK ITEMS ── */
+.check-group{display:grid;grid-template-columns:1fr 1fr;gap:7px;}
+@media(max-width:520px){.check-group{grid-template-columns:1fr;}}
+.chk-item{display:flex;align-items:flex-start;gap:9px;padding:9px 10px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);cursor:pointer;transition:border-color .15s,background .15s;user-select:none;position:relative;}
+.chk-item:hover{border-color:var(--border2);}
+.chk-item.on{border-color:var(--accent2);background:rgba(14,165,233,0.08);}
+.chk-box{width:16px;height:16px;border:1.5px solid var(--text3);border-radius:4px;flex-shrink:0;margin-top:2px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;transition:all .15s;color:transparent;}
+.chk-item.on .chk-box{background:var(--accent2);border-color:var(--accent2);color:#fff;}
+.chk-label{font-size:12px;color:var(--text);line-height:1.4;}
+.chk-sub{font-size:11px;color:var(--text3);display:block;margin-top:1px;}
+.cat-tag{position:absolute;top:5px;right:6px;font-size:9px;padding:1px 6px;border-radius:20px;font-family:var(--mono);font-weight:700;}
+.ct-2a{background:var(--amber-bg);color:var(--amber);border:1px solid rgba(251,191,36,.25);}
+.ct-2b{background:var(--blue-bg); color:var(--blue); border:1px solid rgba(96,165,250,.25);}
+.ct-3 {background:var(--red-bg);  color:var(--red);  border:1px solid rgba(248,113,113,.3);}
+.ct-ng{background:rgba(100,116,139,.10);color:var(--text3);border:1px solid rgba(100,116,139,.2);}
+
+/* ── ANALYZE BTN ── */
+.analyze-btn{width:100%;padding:14px;font-size:15px;font-weight:700;font-family:var(--font);letter-spacing:.04em;background:linear-gradient(135deg,#0ea5e9,#38bdf8);color:#fff;border:none;border-radius:var(--rl);cursor:pointer;transition:opacity .15s,box-shadow .18s;box-shadow:0 0 20px rgba(56,189,248,.25);margin-bottom:22px;}
+.analyze-btn:hover{opacity:.9;box-shadow:0 0 32px rgba(56,189,248,.4);}
+
+/* ── RESULT ── */
+#result-area{display:none;}
+.cat-header{background:var(--bg3);border:1px solid var(--border2);border-radius:var(--rl);padding:14px 18px;margin-bottom:12px;}
+.cat-badge{display:inline-flex;align-items:center;gap:8px;padding:6px 16px;border-radius:var(--r);font-size:14px;font-weight:700;}
+.c1 {background:var(--green-bg);color:var(--green);border:1px solid rgba(34,211,161,.3);}
+.c2b{background:var(--blue-bg); color:var(--blue); border:1px solid rgba(96,165,250,.3);}
+.c2a{background:var(--amber-bg);color:var(--amber);border:1px solid rgba(251,191,36,.3);}
+.c3 {background:var(--red-bg);  color:var(--red);  border:1px solid rgba(248,113,113,.35);}
+.cng{background:var(--red-bg);  color:var(--red);  border:1px solid rgba(248,113,113,.5);}
+.cat-desc{font-size:13px;color:var(--text2);margin-top:6px;}
+
+.stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px;}
+.stat-c{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:10px;text-align:center;}
+.stat-n{font-size:22px;font-weight:700;font-family:var(--mono);}
+.stat-l{font-size:11px;color:var(--text3);margin-top:2px;}
+
+.req-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--rl);overflow:hidden;margin-bottom:12px;}
+.req-head{padding:8px 15px;background:var(--bg3);font-size:10px;font-weight:700;letter-spacing:.1em;color:var(--text3);font-family:var(--mono);border-bottom:1px solid var(--border);}
+.req-item{display:flex;gap:11px;align-items:flex-start;padding:11px 15px;border-bottom:1px solid var(--border);}
+.req-item:last-child{border-bottom:none;}
+.req-dot{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0;margin-top:2px;}
+.dok  {background:var(--green-bg);color:var(--green);border:1px solid rgba(34,211,161,.3);}
+.dwarn{background:var(--amber-bg);color:var(--amber);border:1px solid rgba(251,191,36,.3);}
+.dstop{background:var(--red-bg);  color:var(--red);  border:1px solid rgba(248,113,113,.4);}
+.req-t{font-size:13px;font-weight:500;color:var(--text);line-height:1.4;}
+.req-d{font-size:12px;color:var(--text2);margin-top:3px;line-height:1.6;}
+
+/* ── SUBMISSION TABLE ── */
+.sub-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--rl);overflow:hidden;margin-bottom:12px;}
+.sub-head{padding:8px 15px;background:var(--bg3);font-size:10px;font-weight:700;letter-spacing:.1em;color:var(--text3);font-family:var(--mono);border-bottom:1px solid var(--border);}
+.sub-item{display:grid;grid-template-columns:32px 1fr 1fr;border-bottom:1px solid var(--border);}
+.sub-item:last-child{border-bottom:none;}
+.sub-num{padding:11px 10px;font-size:12px;font-weight:700;color:var(--accent);font-family:var(--mono);border-right:1px solid var(--border);display:flex;align-items:flex-start;justify-content:center;}
+.sub-body{padding:11px 12px;border-right:1px solid var(--border);}
+.sub-dest{padding:11px 12px;}
+.sub-reason{font-size:12px;font-weight:500;color:var(--text);}
+.sub-law{font-size:11px;color:var(--text3);margin-top:2px;font-family:var(--mono);}
+.sub-to{font-size:12px;color:var(--amber);font-weight:500;}
+.sub-detail{font-size:11px;color:var(--text2);margin-top:2px;line-height:1.5;}
+.sub-deadline{display:inline-block;font-size:10px;background:var(--red-bg);color:var(--red);border:1px solid rgba(248,113,113,.3);border-radius:4px;padding:1px 7px;margin-top:4px;font-family:var(--mono);}
+.search-links{display:flex;flex-wrap:wrap;margin-top:6px;gap:4px;}
+.search-link{display:inline-flex;align-items:center;font-size:11px;color:var(--accent);text-decoration:none;background:rgba(56,189,248,.08);border:1px solid rgba(56,189,248,.25);border-radius:4px;padding:2px 8px;}
+.search-link:hover{background:rgba(56,189,248,.15);}
+
+/* ── DRAFT APPLICATION ── */
+.draft-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--rl);overflow:hidden;margin-bottom:12px;}
+.draft-head{padding:8px 15px;background:var(--bg3);font-size:10px;font-weight:700;letter-spacing:.1em;color:var(--text3);font-family:var(--mono);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.draft-body{padding:16px;}
+.draft-section{margin-bottom:16px;}
+.draft-section:last-child{margin-bottom:0;}
+.draft-section-title{font-size:11px;font-weight:700;color:var(--accent);font-family:var(--mono);letter-spacing:.06em;margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid var(--border);}
+.draft-row{display:grid;grid-template-columns:140px 1fr;gap:8px;margin-bottom:6px;align-items:flex-start;}
+.draft-key{font-size:12px;color:var(--text3);}
+.draft-val{font-size:12px;color:var(--text);background:var(--bg3);border-radius:4px;padding:4px 8px;min-height:28px;word-break:break-all;}
+.draft-val.empty{color:var(--text3);font-style:italic;}
+.copy-btn{padding:5px 12px;background:var(--green-bg);border:1px solid rgba(34,211,161,.3);color:var(--green);border-radius:var(--r);font-size:11px;font-family:var(--font);cursor:pointer;transition:opacity .15s;}
+.copy-btn:hover{opacity:.8;}
+.copy-notice{font-size:11px;color:var(--green);margin-left:8px;display:none;}
+
+/* ── FLOW ── */
+.flow-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--rl);padding:14px 16px;margin-bottom:12px;}
+.flow-step{display:flex;align-items:flex-start;gap:11px;position:relative;}
+.flow-step:not(:last-child)::after{content:'';position:absolute;left:10px;top:22px;width:1px;height:calc(100% - 2px);background:var(--border2);}
+.flow-num{width:21px;height:21px;border:1.5px solid var(--accent2);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:var(--accent);flex-shrink:0;background:var(--bg);font-family:var(--mono);z-index:1;}
+.flow-text{padding:1px 0 13px;font-size:13px;color:var(--text2);}
+.flow-text strong{color:var(--text);font-weight:500;display:block;}
+
+/* ── PILOT BOX ── */
+.pilot-box{background:var(--purple-bg);border:1px solid rgba(167,139,250,.25);border-radius:var(--r);padding:9px 13px;margin-bottom:12px;font-size:12px;color:var(--text2);}
+.pilot-box strong{color:var(--purple);font-weight:500;}
+.pp-badges{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px;}
+.pp-badge{background:rgba(167,139,250,.12);border:1px solid rgba(167,139,250,.2);color:var(--purple);font-size:11px;padding:2px 8px;border-radius:20px;font-family:var(--mono);}
+
+/* ── PREFLIGHT CHECKLIST ── */
+.pf-category{margin-bottom:18px;}
+.pf-cat-title{font-size:13px;font-weight:500;color:var(--text);margin-bottom:8px;display:flex;align-items:center;gap:8px;}
+.pf-cat-count{font-size:11px;font-family:var(--mono);color:var(--text3);}
+.pf-item{display:flex;align-items:flex-start;gap:10px;padding:9px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);margin-bottom:6px;cursor:pointer;transition:all .15s;user-select:none;}
+.pf-item:hover{border-color:var(--border2);}
+.pf-item.checked{border-color:var(--green);background:rgba(34,211,161,0.06);}
+.pf-item.checked .pf-box{background:var(--green);border-color:var(--green);color:#fff;}
+.pf-box{width:18px;height:18px;border:1.5px solid var(--text3);border-radius:4px;flex-shrink:0;margin-top:1px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;transition:all .15s;color:transparent;}
+.pf-label{font-size:13px;color:var(--text);line-height:1.4;}
+.pf-note{font-size:11px;color:var(--text3);display:block;margin-top:1px;}
+.pf-progress{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:12px 16px;margin-bottom:16px;display:flex;align-items:center;gap:14px;}
+.pf-bar-wrap{flex:1;background:var(--bg);border-radius:4px;height:8px;overflow:hidden;}
+.pf-bar{height:100%;background:var(--green);border-radius:4px;transition:width .3s ease;}
+.pf-pct{font-size:13px;font-weight:700;font-family:var(--mono);color:var(--green);min-width:40px;text-align:right;}
+.pf-ok-banner{background:var(--green-bg);border:1px solid rgba(34,211,161,.3);border-radius:var(--r);padding:12px 16px;text-align:center;font-size:14px;font-weight:500;color:var(--green);margin-bottom:14px;display:none;}
+.pf-reset-btn{padding:8px 16px;background:transparent;border:1px solid var(--border2);color:var(--text3);border-radius:var(--r);font-size:12px;font-family:var(--font);cursor:pointer;transition:color .15s;}
+.pf-reset-btn:hover{color:var(--text);}
+
+/* ── BUTTONS ── */
+.save-btn{padding:10px 20px;background:var(--green-bg);border:1px solid rgba(34,211,161,.35);color:var(--green);border-radius:var(--r);font-size:13px;font-family:var(--font);cursor:pointer;font-weight:500;transition:opacity .15s;}
+.save-btn:hover{opacity:.8;}
+.save-notice{font-size:12px;color:var(--green);margin-left:10px;display:none;}
+.reset-btn{width:100%;padding:10px;font-size:13px;font-family:var(--font);color:var(--text3);background:transparent;border:1px solid var(--border2);border-radius:var(--r);cursor:pointer;transition:color .15s;margin-top:8px;}
+.reset-btn:hover{color:var(--text);}
+hr.div{border:none;border-top:1px solid var(--border);margin:18px 0;}
+
+/* ── FOOTNOTE ── */
+.footnote{font-size:11px;color:var(--text3);text-align:center;padding:14px 0 0;line-height:2.2;}
+.footnote a{color:var(--accent);text-decoration:none;}
+.footnote a:hover{text-decoration:underline;}
+
+/* ── HISTORY ── */
+.hist-item{background:var(--bg2);border:1px solid var(--border);border-radius:var(--rl);padding:11px 15px;margin-bottom:10px;}
+
+/* ── LEAFLET ── */
+.leaflet-tile{filter:brightness(0.65) saturate(0.75);}
+.custom-marker div{background:var(--red);width:14px;height:14px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 8px rgba(248,113,113,.7);}
+</style>
+</head>
+<body>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="switchTab('check',this)">🚁 飛行チェック</button>
+  <button class="tab-btn" onclick="switchTab('preflight',this)">✅ 飛行前確認</button>
+  <button class="tab-btn" onclick="switchTab('log',this)">📓 飛行記録</button>
+  <button class="tab-btn" onclick="switchTab('pilot',this)">🪪 パイロット情報</button>
+  <button class="tab-btn" onclick="switchTab('history',this)">📋 チェック履歴</button>
+</div>
+
+<!-- ══════════ TAB: CHECK ══════════ -->
+<div id="tab-check" class="tab-content active">
+<div class="container">
+
+  <!-- 法令改正バナー -->
+  <div class="law-banner" id="law-banner">
+    <div class="law-banner-icon">⚠️</div>
+    <div class="law-banner-body">
+      <strong>法令情報について</strong><br>
+      このアプリの情報は <strong>2025年5月時点</strong> の航空法等に基づいています。ドローン規制は頻繁に改正されます。飛行前に必ず
+      <a href="https://www.mlit.go.jp/koku/koku_fr10_000042.html" target="_blank" rel="noopener">国土交通省の最新情報</a> および
+      <a href="https://dips2.mlit.go.jp/" target="_blank" rel="noopener">DIPS2.0</a> で最新状況を確認してください。
+    </div>
+    <button class="law-banner-close" onclick="closeBanner()" title="閉じる">×</button>
+  </div>
+
+  <div class="ver-bar">
+    <span class="ver-txt">v6.0.0 &nbsp;|&nbsp; 法令基準: <strong>令和6年改正 航空法</strong> &nbsp;|&nbsp; 2025-05-23</span>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <span id="update-status" style="font-size:11px;color:var(--text3);font-family:var(--mono);"></span>
+      <a class="ver-link" href="https://www.mlit.go.jp/koku/koku_fr10_000042.html" target="_blank" rel="noopener">国土交通省 最新情報 ↗</a>
+    </div>
+  </div>
+
+  <div id="pilot-summary"></div>
+
+  <div class="slabel">📖 飛行カテゴリー早見表</div>
+  <div class="cat-legend">
+    <div class="legend-item leg-1"><div class="leg-title">カテゴリー Ⅰ</div><div class="leg-desc">特定飛行に非該当。申請不要。</div></div>
+    <div class="legend-item leg-2b"><div class="leg-title">カテゴリー ⅡB</div><div class="leg-desc">資格＋機体認証で緩和あり。DIPS申請が必要。</div></div>
+    <div class="legend-item leg-2a"><div class="leg-title">カテゴリー ⅡA</div><div class="leg-desc">資格に関わらず個別の許可・承認申請が必須。</div></div>
+    <div class="legend-item leg-3"><div class="leg-title">カテゴリー Ⅲ</div><div class="leg-desc">一等資格＋第一種機体認証＋国交大臣許可が必要。</div></div>
+    <div class="legend-item leg-ng"><div class="leg-title">⛔ 禁止・別法律</div><div class="leg-desc">小型無人機等飛行禁止法・緊急用務空域。</div></div>
+  </div>
+
+  <div class="slabel">📍 飛行場所</div>
+  <div class="card">
+    <div class="field">
+      <label>住所・地名を入力、またはマップ上でクリックして飛行地点を指定</label>
+      <div class="addr-row">
+        <input type="text" id="address" placeholder="例: 東京都新宿区西新宿2丁目" autocomplete="off" onkeydown="if(event.key==='Enter')geocode()">
+        <button class="geo-btn" onclick="geocode()">🔍 検索</button>
+      </div>
+      <div class="geo-result" id="geo-result"></div>
+    </div>
+    <div class="map-wrap">
+      <div id="gsi-map"></div>
+      <div class="map-hint" id="map-hint">🖱 クリックまたはタップで飛行地点を指定</div>
+    </div>
+    <div class="detect-row" id="detect-row">
+      <span class="dbadge db-spin" id="badge-did">⏳ DID判定中...</span>
+      <span class="dbadge db-spin" id="badge-ap">⏳ 空港チェック中...</span>
+    </div>
+  </div>
+
+  <!-- 気象情報 -->
+  <div class="card" id="weather-card" style="display:none;">
+    <div class="card-title">🌤 飛行地点の気象情報（Open-Meteo）</div>
+    <div id="weather-body" style="font-size:13px;color:var(--text2);">取得中...</div>
+  </div>
+
+  <!-- 飛行ルート描画 -->
+  <div class="card">
+    <div class="card-title">✏️ 飛行ルート描画（地図上でクリックして経由点を追加）</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
+      <button class="geo-btn" id="route-toggle" onclick="toggleRouteMode()" style="font-size:12px;padding:6px 12px;">ルート描画モード: OFF</button>
+      <button class="geo-btn" onclick="clearRoute()" style="font-size:12px;padding:6px 12px;color:var(--red);border-color:rgba(248,113,113,.35);">ルートをクリア</button>
+    </div>
+    <div id="route-info" style="font-size:12px;color:var(--text3);">地図をクリックして経由点を追加。ルート全体の空域が判定されます。</div>
+  </div>
+
+  <div class="card">
+    <div class="field-row">
+      <div class="field">
+        <label>飛行予定高度（m）※ 150m以上は自動検知</label>
+        <input type="number" id="altitude" placeholder="例: 50" min="0" max="999">
+      </div>
+      <div class="field">
+        <label>飛行目的</label>
+        <select id="purpose">
+          <option value="">選択してください</option>
+          <option value="photo">空撮・写真撮影</option>
+          <option value="video">動画撮影</option>
+          <option value="agri">農薬散布・農業</option>
+          <option value="inspect">点検・測量</option>
+          <option value="deliver">物資輸送・配送</option>
+          <option value="training">練習・訓練</option>
+          <option value="research">研究・開発</option>
+          <option value="other">その他</option>
+        </select>
+      </div>
+    </div>
+    <div class="field">
+      <label>飛行予定日時</label>
+      <input type="datetime-local" id="flight-date">
+    </div>
+    <div class="field">
+      <label>メモ・備考</label>
+      <textarea id="memo" placeholder="飛行場所の詳細、特記事項など..."></textarea>
+    </div>
+  </div>
+
+  <div class="slabel">✈ 飛行方法・追加条件</div>
+  <div class="card">
+    <div class="card-title">該当する条件をすべて選択（カテゴリーを色で表示）</div>
+    <div class="check-group">
+      <div class="chk-item" data-id="night"      onclick="toggleChk(this)"><div class="chk-box">✓</div><div class="chk-label">夜間飛行<span class="chk-sub">日没後〜日の出前</span></div><span class="cat-tag ct-2b">ⅡB</span></div>
+      <div class="chk-item" data-id="bvlos"      onclick="toggleChk(this)"><div class="chk-box">✓</div><div class="chk-label">目視外飛行（BVLOS）<span class="chk-sub">機体を直視できない飛行</span></div><span class="cat-tag ct-2b">ⅡB</span></div>
+      <div class="chk-item" data-id="close"      onclick="toggleChk(this)"><div class="chk-box">✓</div><div class="chk-label">人・物件から30m未満<span class="chk-sub">第三者・建物・車両など</span></div><span class="cat-tag ct-2b">ⅡB</span></div>
+      <div class="chk-item" data-id="event"      onclick="toggleChk(this)"><div class="chk-box">✓</div><div class="chk-label">催し物会場の上空<span class="chk-sub">イベント・祭り・式典など</span></div><span class="cat-tag ct-2a">ⅡA</span></div>
+      <div class="chk-item" data-id="drop"       onclick="toggleChk(this)"><div class="chk-box">✓</div><div class="chk-label">物件投下・危険物輸送<span class="chk-sub">農薬散布・荷物投下含む</span></div><span class="cat-tag ct-2a">ⅡA</span></div>
+      <div class="chk-item" data-id="heavy"      onclick="toggleChk(this)"><div class="chk-box">✓</div><div class="chk-label">機体重量 25kg以上<span class="chk-sub">最大離陸重量25kg超の機体</span></div><span class="cat-tag ct-2a">ⅡA</span></div>
+      <div class="chk-item" data-id="road"       onclick="toggleChk(this)"><div class="chk-box">✓</div><div class="chk-label">道路上・道路際から離発着<span class="chk-sub">公道を離発着場所に使う場合</span></div><span class="cat-tag ct-2b">道交法</span></div>
+      <div class="chk-item" data-id="crowd"      onclick="toggleChk(this)"><div class="chk-box">✓</div><div class="chk-label">第三者上空（立入管理なし）<span class="chk-sub">不特定多数がいる場所の真上</span></div><span class="cat-tag ct-3">Ⅲ</span></div>
+      <div class="chk-item" data-id="restricted" onclick="toggleChk(this)"><div class="chk-box">✓</div><div class="chk-label">特定重要施設・飛行禁止区域<span class="chk-sub">官邸・国会・原発・皇居・防衛施設</span></div><span class="cat-tag ct-ng">禁止法</span></div>
+      <div class="chk-item" data-id="emergency"  onclick="toggleChk(this)"><div class="chk-box">✓</div><div class="chk-label">緊急用務空域<span class="chk-sub">消防・救助・警察活動中に指定</span></div><span class="cat-tag ct-ng">禁止</span></div>
+      <div class="chk-item" data-id="river"      onclick="toggleChk(this)"><div class="chk-box">✓</div><div class="chk-label">河川・湖沼・海岸の上空<span class="chk-sub">河川敷・海岸線付近</span></div><span class="cat-tag ct-2b">要確認</span></div>
+      <div class="chk-item" data-id="park"       onclick="toggleChk(this)"><div class="chk-box">✓</div><div class="chk-label">公園・国立公園内<span class="chk-sub">都市公園・自然公園など</span></div><span class="cat-tag ct-2b">要確認</span></div>
+      <div class="chk-item" data-id="agri"       onclick="toggleChk(this)"><div class="chk-box">✓</div><div class="chk-label">農薬散布（農地限定）<span class="chk-sub">農水省ガイドライン対象</span></div><span class="cat-tag ct-2a">ⅡA</span></div>
+    </div>
+  </div>
+
+  <button class="analyze-btn" onclick="analyze()">🔍 必要な手続きを判定する</button>
+
+  <div id="result-area">
+    <div class="slabel">📋 判定結果</div>
+    <div id="result-inner"></div>
+    <hr class="div">
+    <button class="reset-btn" onclick="resetAll()">↺ リセットして再検索</button>
+  </div>
+
+</div>
+</div>
+
+<!-- ══════════ TAB: PREFLIGHT ══════════ -->
+<div id="tab-preflight" class="tab-content">
+<div class="container">
+
+  <div class="ver-bar"><span class="ver-txt">飛行当日に使う機体・安全確認チェックリスト</span></div>
+
+  <div class="pf-progress">
+    <div style="font-size:12px;color:var(--text2);white-space:nowrap;">完了率</div>
+    <div class="pf-bar-wrap"><div class="pf-bar" id="pf-bar" style="width:0%"></div></div>
+    <div class="pf-pct" id="pf-pct">0%</div>
+    <button class="pf-reset-btn" onclick="resetPreflight()">リセット</button>
+  </div>
+
+  <div class="pf-ok-banner" id="pf-ok-banner">🎉 全項目チェック完了！飛行の準備ができています。</div>
+
+  <div id="pf-list"></div>
+
+</div>
+</div>
+
+<!-- ══════════ TAB: PILOT ══════════ -->
+<div id="tab-pilot" class="tab-content">
+<div class="container">
+  <div class="ver-bar"><span class="ver-txt">入力情報はブラウザ内（localStorage）のみに保存。外部送信なし。</span></div>
+
+  <div class="slabel">🪪 パイロット基本情報</div>
+  <div class="card">
+    <div class="field-row">
+      <div class="field"><label>氏名</label><input type="text" id="p-name" placeholder="山田 太郎" autocomplete="name"></div>
+      <div class="field"><label>生年月日</label><input type="date" id="p-birth"></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>電話番号</label><input type="tel" id="p-tel" placeholder="090-0000-0000"></div>
+      <div class="field"><label>メールアドレス</label><input type="email" id="p-email" placeholder="example@mail.com"></div>
+    </div>
+    <div class="field"><label>住所</label><input type="text" id="p-addr" placeholder="東京都〇〇区〇〇"></div>
+  </div>
+
+  <div class="slabel">📜 保有ライセンス・資格</div>
+  <div class="card">
+    <div class="card-title">国家技能証明</div>
+    <div class="check-group">
+      <div class="chk-item" data-id="cert1" onclick="toggleChk(this)"><div class="chk-box">✓</div><div class="chk-label">一等無人航空機操縦士<span class="chk-sub">第一種機体認証・Ⅲ飛行対応</span></div></div>
+      <div class="chk-item on"  data-id="cert2" onclick="toggleChk(this)"><div class="chk-box">✓</div><div class="chk-label">二等無人航空機操縦士<span class="chk-sub">第二種機体認証・ⅡB飛行対応</span></div></div>
+    </div>
+    <div class="card-title" style="margin-top:12px;">限定解除</div>
+    <div class="check-group">
+      <div class="chk-item on" data-id="night-cert" onclick="toggleChk(this)"><div class="chk-box">✓</div><div class="chk-label">夜間飛行 限定解除</div></div>
+      <div class="chk-item on" data-id="bvlos-cert" onclick="toggleChk(this)"><div class="chk-box">✓</div><div class="chk-label">目視外飛行 限定解除</div></div>
+    </div>
+    <div class="card-title" style="margin-top:12px;">民間資格・その他</div>
+    <div class="check-group">
+      <div class="chk-item" data-id="juida"       onclick="toggleChk(this)"><div class="chk-box">✓</div><div class="chk-label">JUIDA 操縦技能証明</div></div>
+      <div class="chk-item" data-id="dpa"         onclick="toggleChk(this)"><div class="chk-box">✓</div><div class="chk-label">DPA ドローン操縦士</div></div>
+      <div class="chk-item" data-id="drone-check" onclick="toggleChk(this)"><div class="chk-box">✓</div><div class="chk-label">ドローン検定 1〜3級</div></div>
+      <div class="chk-item" data-id="insurance"   onclick="toggleChk(this)"><div class="chk-box">✓</div><div class="chk-label">第三者損害賠償保険 加入済</div></div>
+    </div>
+  </div>
+
+  <div class="slabel">🤖 DIPS・機体情報</div>
+  <div class="card">
+    <div class="field-row">
+      <div class="field"><label>DIPS2.0 登録ID</label><input type="text" id="p-dips" placeholder="DIPS登録番号" autocomplete="off"></div>
+      <div class="field"><label>機体登録番号（JU〜）</label><input type="text" id="p-kikai" placeholder="JU0000000000" autocomplete="off"></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>機体メーカー・機種名</label><input type="text" id="p-model" placeholder="例: DJI Mini 4 Pro"></div>
+      <div class="field"><label>機体重量（g）</label><input type="number" id="p-weight" placeholder="例: 249" min="0"></div>
+    </div>
+    <div class="field"><label>保険会社・証券番号</label><input type="text" id="p-ins" placeholder="例: 〇〇損保 No.XXXXXXXX"></div>
+  </div>
+
+  <div style="display:flex;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:8px;">
+    <button class="save-btn" onclick="savePilot()">💾 保存する（次回から自動入力）</button>
+    <span class="save-notice" id="save-notice">✓ 保存しました</span>
+  </div>
+
+  <!-- エクスポート/インポート -->
+  <div class="slabel">💾 データのバックアップ・復元</div>
+  <div class="card">
+    <div class="card-title" style="margin-bottom:8px;">設定・飛行記録をファイルに保存しておくと、ブラウザのデータ削除時も復元できます。</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
+      <button class="save-btn" onclick="exportAllData()">📤 全データをエクスポート（JSON）</button>
+      <label class="save-btn" style="cursor:pointer;">
+        📥 データをインポート（JSON）
+        <input type="file" id="import-file" accept=".json" style="display:none;" onchange="importAllData(event)">
+      </label>
+    </div>
+    <div id="import-notice" style="font-size:12px;color:var(--green);display:none;"></div>
+  </div>
+
+  <div class="slabel">🔒 プライバシー・セキュリティについて</div>
+  <div class="card" style="font-size:12px;color:var(--text2);line-height:2.1;">
+    <div style="color:var(--amber);font-weight:500;margin-bottom:6px;">⚠ 入力前にご確認ください</div>
+    <div style="background:var(--bg3);border-radius:var(--r);padding:10px 14px;margin-bottom:10px;">
+      <div style="color:var(--red);margin-bottom:4px;">🚫 以下の情報は入力しないでください</div>
+      パスワード・クレジットカード番号・銀行口座情報・マイナンバー・パスポート番号
+    </div>
+    <div>✅ 入力情報はお使いのブラウザの <code style="background:var(--bg3);padding:1px 5px;border-radius:3px;">localStorage</code> にのみ保存されます。外部サーバーへの送信は一切ありません。</div>
+    <div>⚠ ブラウザの開発ツール（F12）からlocalStorageの内容は確認可能です。共有PCでの使用は避けてください。</div>
+    <div>⚠ ブラウザのキャッシュ・サイトデータを削除すると消去されます。上記の「エクスポート」で定期的にバックアップを取ることを推奨します。</div>
+    <div>✅ DIPS ID・機体登録番号・保険証券番号は申請に便利ですが、センシティブ度が低いため記録しても問題ありません。</div>
+  </div>
+</div>
+</div>
+
+<!-- ══════════ TAB: FLIGHT LOG ══════════ -->
+<div id="tab-log" class="tab-content">
+<div class="container">
+
+  <div class="ver-bar">
+    <span class="ver-txt">📓 飛行日誌（様式１）— 航空法施行規則第236条の84準拠</span>
+    <div style="display:flex;gap:8px;">
+      <button class="save-btn" onclick="exportLogCSV()" style="font-size:11px;padding:6px 14px;">📄 CSV出力</button>
+      <button class="save-btn" onclick="exportLogXLSX()" style="font-size:11px;padding:6px 14px;background:rgba(34,211,161,0.15);">📊 Excel出力</button>
+    </div>
+  </div>
+
+  <!-- 新規記録追加 -->
+  <div class="slabel">➕ 飛行記録を追加（様式１）</div>
+  <div class="card">
+    <div class="field-row">
+      <div class="field"><label>飛行年月日 *</label><input type="date" id="log-date"></div>
+      <div class="field"><label>離陸時刻 *</label><input type="time" id="log-takeoff-time"></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>着陸時刻 *</label><input type="time" id="log-landing-time"></div>
+      <div class="field"><label>飛行時間（分）*</label><input type="number" id="log-duration" placeholder="例: 30" min="0"></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>離陸場所 *</label><input type="text" id="log-from" placeholder="例: 東京都新宿区〇〇公園"></div>
+      <div class="field"><label>着陸場所 *</label><input type="text" id="log-to" placeholder="例: 東京都新宿区〇〇公園"></div>
+    </div>
+    <div class="field"><label>飛行目的・経路概要 *</label>
+      <input type="text" id="log-purpose" placeholder="例: 空撮（建物外壁点検）、霞が関〜永田町"></div>
+    <div class="field"><label>飛行させた特定飛行の種別</label>
+      <input type="text" id="log-special" placeholder="例: DID上空、夜間飛行（該当なければ空白）"></div>
+    <div class="field-row">
+      <div class="field"><label>製造後の総飛行時間（この飛行後）</label>
+        <input type="text" id="log-total-time" placeholder="例: 10時間30分"></div>
+      <div class="field"><label>安全に影響のあった事項</label>
+        <select id="log-incident">
+          <option value="なし">なし</option>
+          <option value="あり">あり（備考欄に記載）</option>
+        </select>
+      </div>
+    </div>
+    <div class="field"><label>不具合・備考（安全影響事項がある場合は詳細を記載）</label>
+      <textarea id="log-note" placeholder="特記事項があれば記入..."></textarea></div>
+    <button class="save-btn" onclick="addLogEntry()" style="margin-top:4px;">✈ 記録を追加</button>
+    <span class="save-notice" id="log-add-notice" style="margin-left:10px;">✓ 追加しました</span>
+  </div>
+
+  <!-- 記録一覧 -->
+  <div class="slabel">📋 飛行記録一覧</div>
+  <div id="log-list"></div>
+
+  <div class="card" style="font-size:11px;color:var(--text3);line-height:2;">
+    航空法第132条の89・施行規則第236条の84に基づく飛行日誌（様式１）準拠。<br>
+    特定飛行を行う者は飛行日誌の備え・記載・携行が義務（違反は10万円以下の罰金）。<br>
+    <a href="https://www.mlit.go.jp/koku/operation.html" target="_blank" rel="noopener" style="color:var(--accent);">国土交通省 飛行日誌の作成について ↗</a>
+  </div>
+
+</div>
+</div>
+
+<!-- ══════════ TAB: HISTORY ══════════ -->
+<div id="tab-history" class="tab-content">
+<div class="container">
+  <div class="slabel">📋 チェック履歴（直近10件）</div>
+  <div id="history-list"></div>
+  <button class="reset-btn" onclick="clearHistory()" style="margin-top:10px;">🗑 履歴を全削除</button>
+</div>
+</div>
+
+<script>
+/* ============================================================
+   CONSTANTS
+============================================================ */
+const APP_VER   = '6.0.0';
+const APP_DATE  = '2025-05-23';
+const PILOT_KEY = 'drone_pilot_v2';
+const HIST_KEY  = 'drone_history_v4';
+const PF_KEY    = 'drone_preflight_v1';
+const LOG_KEY   = 'drone_flightlog_v1';
+
+// GitHubリポジトリ設定
+const GITHUB_USER = 'hayakawa0708';
+const GITHUB_REPO = 'drone-photography';
+const GITHUB_BRANCH = 'main';
+const GITHUB_RAW_BASE = 'https://raw.githubusercontent.com/' + GITHUB_USER + '/' + GITHUB_REPO + '/' + GITHUB_BRANCH + '/';
+const GITHUB_API_BASE = 'https://api.github.com/repos/' + GITHUB_USER + '/' + GITHUB_REPO + '/';
+
+/* ============================================================
+   SECURITY: XSS対策
+============================================================ */
+function esc(s){
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');
+}
+
+/* ============================================================
+   STATE
+============================================================ */
+let geoLat=null,geoLon=null,autoDID=null,nearestAP=null,majorAP=null;
+let mapMarker=null,currentPref='',currentCity='';
+
+/* ============================================================
+   LAW BANNER
+============================================================ */
+function closeBanner(){document.getElementById('law-banner').style.display='none';}
+
+/* ============================================================
+   AIRPORTS
+============================================================ */
+const AIRPORTS=[
+  {name:'新千歳空港',          lat:42.7752,lon:141.6922,major:true},
+  {name:'成田国際空港',        lat:35.7647,lon:140.3864,major:true},
+  {name:'東京国際空港（羽田）',lat:35.5494,lon:139.7798,major:true},
+  {name:'中部国際空港',        lat:34.8584,lon:136.8050,major:true},
+  {name:'関西国際空港',        lat:34.4273,lon:135.2440,major:true},
+  {name:'大阪国際空港（伊丹）',lat:34.7855,lon:135.4380,major:true},
+  {name:'福岡空港',            lat:33.5858,lon:130.4511,major:true},
+  {name:'那覇空港',            lat:26.1958,lon:127.6460,major:true},
+  {name:'仙台空港',lat:38.1397,lon:140.9170,major:false},{name:'新潟空港',lat:37.9558,lon:139.1122,major:false},
+  {name:'広島空港',lat:34.4361,lon:132.9194,major:false},{name:'高松空港',lat:34.2141,lon:134.0158,major:false},
+  {name:'松山空港',lat:33.8272,lon:132.6994,major:false},{name:'熊本空港',lat:32.8373,lon:130.8553,major:false},
+  {name:'鹿児島空港',lat:31.8034,lon:130.7194,major:false},{name:'長崎空港',lat:32.9169,lon:129.9144,major:false},
+  {name:'大分空港',lat:33.4794,lon:131.7369,major:false},{name:'宮崎空港',lat:31.8772,lon:131.4483,major:false},
+  {name:'旭川空港',lat:43.6708,lon:142.4475,major:false},{name:'函館空港',lat:41.7700,lon:140.8219,major:false},
+  {name:'秋田空港',lat:39.6153,lon:140.2189,major:false},{name:'山形空港',lat:38.4119,lon:140.3714,major:false},
+  {name:'福島空港',lat:37.2275,lon:140.4311,major:false},{name:'茨城空港',lat:36.1811,lon:140.4153,major:false},
+  {name:'小松空港',lat:36.3939,lon:136.4069,major:false},{name:'富山空港',lat:36.6483,lon:137.1875,major:false},
+  {name:'静岡空港',lat:34.7961,lon:138.1894,major:false},{name:'神戸空港',lat:34.6328,lon:135.2233,major:false},
+  {name:'岡山空港',lat:34.7569,lon:133.8547,major:false},{name:'山口宇部空港',lat:33.9300,lon:131.2789,major:false},
+  {name:'高知龍馬空港',lat:33.5464,lon:133.6692,major:false},{name:'徳島阿波おどり空港',lat:34.1303,lon:134.6064,major:false},
+  {name:'石垣空港',lat:24.3964,lon:124.1542,major:false},{name:'宮古空港',lat:24.7828,lon:125.2947,major:false},
+];
+
+/* ============================================================
+   MAP
+============================================================ */
+let map;
+let didLayer=null;           // DID境界レイヤー
+let airportLayers=[];        // 空港圏レイヤー（全空港）
+let pinCircles=[];           // ピン位置の空港圏ハイライト
+
+function initMap(){
+  map=L.map('gsi-map',{center:[35.6812,139.7671],zoom:10});
+
+  // 国土地理院 標準地図タイル
+  const baseLayer=L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png',{
+    attribution:'<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank">国土地理院</a>',maxZoom:18,
+  }).addTo(map);
+
+  // DID2020レイヤー（半透明オーバーレイ）
+  didLayer=L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/did2020/{z}/{x}/{y}.png',{
+    opacity:0.45,
+    maxZoom:18,
+    attribution:'DID2020: 国土地理院',
+  }).addTo(map);
+
+  // 空港9km圏・300m圏を全空港分描画
+  AIRPORTS.forEach(ap=>{
+    // 9km圏（黄色・細線）
+    const c9=L.circle([ap.lat,ap.lon],{
+      radius:9000,
+      color:'#fbbf24',
+      weight:1.5,
+      fill:true,
+      fillColor:'#fbbf24',
+      fillOpacity:0.04,
+      interactive:false,
+    }).addTo(map);
+
+    // 300m圏（赤・主要8空港のみ）
+    if(ap.major){
+      const c3=L.circle([ap.lat,ap.lon],{
+        radius:300,
+        color:'#f87171',
+        weight:2,
+        fill:true,
+        fillColor:'#f87171',
+        fillOpacity:0.15,
+        interactive:false,
+      }).addTo(map);
+      airportLayers.push(c3);
+    }
+    airportLayers.push(c9);
+
+    // 空港名ラベル（ズーム9以上で表示）
+    const label=L.marker([ap.lat,ap.lon],{
+      icon:L.divIcon({
+        className:'',
+        html:'<div style="font-size:10px;color:#fbbf24;background:rgba(10,14,26,0.75);padding:1px 5px;border-radius:3px;white-space:nowrap;border:1px solid rgba(251,191,36,0.3);">✈ '+ap.name+'</div>',
+        iconAnchor:[0,0],
+      }),
+      interactive:false,
+    });
+    map.on('zoomend',function(){
+      if(map.getZoom()>=9)map.addLayer(label);
+      else map.removeLayer(label);
+    });
+    airportLayers.push(label);
+  });
+
+  // 地図凡例
+  const legend=L.control({position:'bottomright'});
+  legend.onAdd=function(){
+    const div=L.DomUtil.create('div');
+    div.style.cssText='background:rgba(10,14,26,0.88);border:1px solid rgba(56,189,248,0.3);border-radius:8px;padding:8px 12px;font-size:11px;color:#94a3b8;line-height:2;min-width:140px;';
+    div.innerHTML=
+      '<div style="font-weight:700;color:#38bdf8;margin-bottom:2px;font-size:10px;letter-spacing:.08em;">MAP LEGEND</div>'
+      +'<div><span style="display:inline-block;width:14px;height:10px;background:rgba(251,146,60,0.5);border:1px solid #fb923c;border-radius:2px;margin-right:5px;vertical-align:middle;"></span>DID（人口集中地区）</div>'
+      +'<div><span style="display:inline-block;width:14px;height:2px;background:#fbbf24;margin-right:5px;vertical-align:middle;"></span>空港 9km圏</div>'
+      +'<div><span style="display:inline-block;width:14px;height:2px;background:#f87171;margin-right:5px;vertical-align:middle;"></span>主要空港 300m圏</div>'
+      +'<div><span style="display:inline-block;width:10px;height:10px;background:#f87171;border-radius:50%;border:2px solid #fff;margin-right:5px;vertical-align:middle;"></span>飛行地点</div>';
+    return div;
+  };
+  legend.addTo(map);
+
+  // レイヤー表示トグルボタン
+  const layerCtrl=L.control({position:'topleft'});
+  layerCtrl.onAdd=function(){
+    const div=L.DomUtil.create('div');
+    div.style.cssText='background:rgba(10,14,26,0.88);border:1px solid rgba(56,189,248,0.3);border-radius:8px;padding:6px 10px;font-size:11px;color:#94a3b8;cursor:pointer;user-select:none;margin-top:6px;';
+    div.innerHTML='<label style="cursor:pointer;display:flex;align-items:center;gap:6px;"><input type="checkbox" id="did-toggle" checked style="accent-color:#38bdf8;"> DIDレイヤー表示</label>';
+    L.DomEvent.disableClickPropagation(div);
+    div.querySelector('#did-toggle').addEventListener('change',function(e){
+      if(e.target.checked)map.addLayer(didLayer);
+      else map.removeLayer(didLayer);
+    });
+    return div;
+  };
+  layerCtrl.addTo(map);
+
+  map.on('click',function(e){
+    if(routeMode){
+      addRoutePoint(e.latlng.lat,e.latlng.lng);
+    } else {
+      setLocation(e.latlng.lat,e.latlng.lng);
+      reverseGeocode(e.latlng.lat,e.latlng.lng);
+    }
+  });
+}
+
+function setMapPin(lat,lon){
+  if(mapMarker)map.removeLayer(mapMarker);
+  // 以前のピン圏を消す
+  pinCircles.forEach(c=>map.removeLayer(c));
+  pinCircles=[];
+
+  const icon=L.divIcon({className:'custom-marker',html:'<div></div>',iconSize:[14,14],iconAnchor:[7,7]});
+  mapMarker=L.marker([lat,lon],{icon}).addTo(map);
+  map.setView([lat,lon],Math.max(map.getZoom(),13));
+  document.getElementById('map-hint').classList.add('hidden');
+}
+
+/* ============================================================
+   SET LOCATION
+============================================================ */
+function setLocation(lat,lon){
+  geoLat=lat;geoLon=lon;
+  autoDID=null;nearestAP=null;majorAP=null;currentPref='';currentCity='';
+  setMapPin(lat,lon);
+  const dr=document.getElementById('detect-row');
+  dr.style.display='flex';
+  document.getElementById('badge-did').className='dbadge db-spin';
+  document.getElementById('badge-did').textContent='⏳ DID判定中...';
+  document.getElementById('badge-ap').className='dbadge db-spin';
+  document.getElementById('badge-ap').textContent='⏳ 空港チェック中...';
+  checkDID(lat,lon);
+  checkAirports(lat,lon);
+  fetchWeather(lat,lon);
+}
+
+/* ============================================================
+   GEOCODING
+============================================================ */
+async function geocode(){
+  const addr=document.getElementById('address').value.trim();
+  if(!addr)return;
+  const geoEl=document.getElementById('geo-result');
+  geoEl.className='geo-result';geoEl.style.display='block';geoEl.textContent='🔍 検索中...';
+  try{
+    const res=await fetch('https://msearch.gsi.go.jp/address-search/AddressSearch?q='+encodeURIComponent(addr),{mode:'cors'});
+    if(!res.ok)throw new Error();
+    const data=await res.json();
+    if(!Array.isArray(data)||!data.length){geoEl.className='geo-result err';geoEl.textContent='❌ 住所が見つかりませんでした。';return;}
+    const[lon,lat]=data[0].geometry.coordinates;
+    const name=data[0].properties?.title||addr;
+    geoEl.className='geo-result ok';
+    geoEl.textContent='✓ '+name+'（緯度:'+lat.toFixed(5)+', 経度:'+lon.toFixed(5)+'）';
+    setLocation(lat,lon);
+    // 住所検索時も市区町村を取得
+    await reverseGeocodeState(lat,lon);
+  }catch(e){geoEl.className='geo-result err';geoEl.textContent='❌ 検索エラー。インターネット接続を確認してください。';}
+}
+
+/* ============================================================
+   REVERSE GEOCODING (マップクリック時: 住所表示用)
+============================================================ */
+async function reverseGeocode(lat,lon){
+  const geoEl=document.getElementById('geo-result');
+  geoEl.style.display='block';geoEl.className='geo-result';geoEl.textContent='🔍 住所を取得中...';
+  try{
+    const res=await fetch('https://mreversegeocoder.gsi.go.jp/reverse-geocoder/LonLatToAddress?lon='+lon.toFixed(6)+'&lat='+lat.toFixed(6),{mode:'cors'});
+    const data=await res.json();
+    const r=data.results;
+    if(r&&r.muniCd){
+      currentPref=r.lv01Nm||'';
+      currentCity=r.lv02Nm||r.lv01Nm||'';
+      const addr=(r.lv01Nm||'')+(r.lv02Nm||'');
+      geoEl.className='geo-result ok';
+      geoEl.textContent='📍 '+addr+'（緯度:'+lat.toFixed(5)+', 経度:'+lon.toFixed(5)+'）';
+      document.getElementById('address').value=addr;
+    }else{
+      geoEl.className='geo-result ok';
+      geoEl.textContent='📍 緯度:'+lat.toFixed(5)+', 経度:'+lon.toFixed(5);
+    }
+  }catch(e){geoEl.className='geo-result ok';geoEl.textContent='📍 緯度:'+lat.toFixed(5)+', 経度:'+lon.toFixed(5);}
+}
+
+/* 住所検索時の市区町村取得（表示更新なし） */
+async function reverseGeocodeState(lat,lon){
+  try{
+    const res=await fetch('https://mreversegeocoder.gsi.go.jp/reverse-geocoder/LonLatToAddress?lon='+lon.toFixed(6)+'&lat='+lat.toFixed(6),{mode:'cors'});
+    const data=await res.json();
+    const r=data.results;
+    if(r&&r.muniCd){currentPref=r.lv01Nm||'';currentCity=r.lv02Nm||r.lv01Nm||'';}
+  }catch(e){}
+}
+
+/* ============================================================
+   DID CHECK — WMS方式（2020年国勢調査ベース）
+   国土地理院WMSでdid2020レイヤーの指定座標ピクセルを取得
+============================================================ */
+async function checkDID(lat,lon){
+  const badge=document.getElementById('badge-did');
+  try{
+    const delta=0.0005;
+    const minX=lon-delta,minY=lat-delta,maxX=lon+delta,maxY=lat+delta;
+    const wmsUrl='https://cyberjapandata.gsi.go.jp/wms?'
+      +'SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap'
+      +'&LAYERS=did2020'          // ← 2020年国勢調査ベースに更新
+      +'&STYLES='
+      +'&CRS=EPSG:4326'
+      +'&BBOX='+minY+','+minX+','+maxY+','+maxX
+      +'&WIDTH=9&HEIGHT=9'
+      +'&FORMAT=image/png'
+      +'&TRANSPARENT=TRUE';
+    const img=new Image();img.crossOrigin='anonymous';
+    await new Promise((res,rej)=>{img.onload=res;img.onerror=rej;img.src=wmsUrl;});
+    const canvas=document.createElement('canvas');canvas.width=9;canvas.height=9;
+    canvas.getContext('2d').drawImage(img,0,0);
+    const d=canvas.getContext('2d').getImageData(4,4,1,1).data;
+    autoDID=d[3]>10;
+    badge.className=autoDID?'dbadge db-yes':'dbadge db-no';
+    badge.textContent=autoDID?'⚠ DID（人口集中地区）内':'✓ DID外（人口集中地区外）';
+  }catch(e){
+    // WMS失敗時: タイル存在チェックにフォールバック（2020版）
+    try{
+      const zoom=13,n=Math.pow(2,zoom);
+      const tX=Math.floor((lon+180)/360*n);
+      const sinL=Math.sin(lat*Math.PI/180);
+      const tY=Math.floor((1-Math.log((1+sinL)/(1-sinL))/(2*Math.PI))/2*n);
+      const r=await fetch('https://cyberjapandata.gsi.go.jp/xyz/did2020/'+zoom+'/'+tX+'/'+tY+'.png',{method:'HEAD',mode:'cors'});
+      autoDID=r.ok;
+      badge.className=autoDID?'dbadge db-yes':'dbadge db-no';
+      badge.textContent=autoDID?'⚠ DID可能性あり（地理院地図で要確認）':'✓ DID外';
+    }catch(e2){
+      autoDID=null;
+      badge.className='dbadge db-unk';
+      badge.textContent='❓ DID：地理院地図で確認してください';
+    }
+  }
+}
+
+/* ============================================================
+   AIRPORT CHECK
+============================================================ */
+function haversine(a,b,c,d){const R=6371000,r=Math.PI/180,dL=(c-a)*r,dN=(d-b)*r;const x=Math.sin(dL/2)**2+Math.cos(a*r)*Math.cos(c*r)*Math.sin(dN/2)**2;return R*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x));}
+function checkAirports(lat,lon){
+  const badge=document.getElementById('badge-ap');
+  let closest=null,min=Infinity;
+  AIRPORTS.forEach(ap=>{const d=haversine(lat,lon,ap.lat,ap.lon);if(d<min){min=d;closest={...ap,dist:d};}});
+  nearestAP=closest;
+  const km=(min/1000).toFixed(1),m=Math.round(min);
+  if(closest.major&&min<=300){majorAP=closest;badge.className='dbadge db-yes';badge.textContent='🔴 '+closest.name+' 約'+m+'m（300m圏内）';}
+  else if(min<=9000){majorAP=null;badge.className='dbadge db-yes';badge.textContent='⚠ '+closest.name+' 約'+km+'km（9km圏内）';}
+  else{majorAP=null;badge.className='dbadge db-no';badge.textContent='✓ 最寄: '+closest.name+' 約'+km+'km';}
+}
+
+/* ============================================================
+   TOGGLE
+============================================================ */
+function toggleChk(el){el.classList.toggle('on');}
+function cv(id){const el=document.querySelector('[data-id="'+id+'"]');return el?el.classList.contains('on'):false;}
+
+/* ============================================================
+   ANALYZE
+============================================================ */
+function analyze(){
+  if(!geoLat||!geoLon){alert('先に飛行場所を入力または地図上でクリックしてください。');return;}
+  const p=getPilot();
+  const hasCert1=p?!!p.chk_cert1:false,hasCert2=p?!!p.chk_cert2:false;
+  const hasNight=p?!!p['chk_night-cert']:false,hasBvlos=p?!!p['chk_bvlos-cert']:false;
+  const hasIns=p?!!p.chk_insurance:false;
+  const pilotName=p?.name||'';const pilotDips=p?.dips||'';const pilotKikai=p?.kikai||'';
+  const pilotModel=p?.model||'';const pilotIns=p?.ins||'';
+
+  const night=cv('night'),bvlos=cv('bvlos'),close=cv('close'),crowd=cv('crowd');
+  const event=cv('event'),drop=cv('drop'),road=cv('road'),heavy=cv('heavy');
+  const restricted=cv('restricted'),emergency=cv('emergency'),river=cv('river'),park=cv('park'),agri=cv('agri');
+
+  const did=autoDID===true,inAP9k=nearestAP&&nearestAP.dist<=9000;
+  const inMaj300=majorAP!==null;
+  const alt=parseInt(document.getElementById('altitude').value)||0;
+  const above150=alt>=150;
+  const purpose=document.getElementById('purpose').value;
+  const purposeLabel={'photo':'空撮・写真撮影','video':'動画撮影','agri':'農薬散布・農業','inspect':'点検・測量','deliver':'物資輸送・配送','training':'練習・訓練','research':'研究・開発','other':'その他'}[purpose]||'';
+  const flightDate=document.getElementById('flight-date').value;
+  const memo=document.getElementById('memo').value;
+  const address=document.getElementById('address').value;
+
+  const isSpecial=did||inAP9k||above150||event||night||bvlos||close||crowd||drop||heavy||agri;
+
+  /* カテゴリー */
+  let catKey,catLabel,catDesc;
+  if(restricted||emergency){catKey='cng';catLabel='⛔ 飛行禁止・要個別確認';catDesc='特定重要施設・緊急用務空域は原則飛行禁止です。管轄機関への確認が必須です。';}
+  else if(crowd){catKey='c3';catLabel='カテゴリー Ⅲ（レベル4相当）';catDesc='第三者上空・立入管理なし飛行。一等資格＋第一種機体認証＋国交大臣許可が必要です。';}
+  else if(inAP9k||event||drop||heavy||above150||agri){catKey='c2a';catLabel='カテゴリー ⅡA';catDesc='資格の有無に関わらず個別の許可・承認申請が必須です（DIPS2.0）。';}
+  else if(isSpecial||inMaj300||river||park){catKey='c2b';catLabel='カテゴリー ⅡB / ⅡA';catDesc='特定飛行に該当します。DIPS2.0での許可・承認申請が必要です。';}
+  else{catKey='c1';catLabel='カテゴリー Ⅰ';catDesc='特定飛行に該当しません。申請不要ですが機体登録とルール遵守は必須です。';}
+
+  /* チェックリスト */
+  const reqs=[];
+  reqs.push({t:'ok',title:'機体登録（全飛行必須）',detail:'100g以上すべての機体が対象。DIPS2.0で登録し機体に登録記号を表示する。未登録は罰則あり。'});
+  reqs.push({t:'ok',title:'飛行前の空域確認（全飛行必須）',detail:'DIPS2.0またはDroneroute・地理院地図で緊急用務空域・飛行禁止空域を飛行直前に確認する。'});
+  if(did){reqs.push(hasCert2||hasCert1?{t:'warn',title:'DID上空：DIPS2.0で許可申請',detail:'二等（または一等）資格を保有しているため申請要件は満たします。飛行10営業日前までに申請。'}:{t:'stop',title:'DID上空：DIPS2.0で許可申請＋資格確認要',detail:'飛行10営業日前までに申請必須。技能証明書を添付すること。'});}
+  if(inMaj300&&majorAP){reqs.push({t:'stop',title:majorAP.name+' 300m圏内：小型無人機等飛行禁止法の追加手続き',detail:'①空港管理者の同意取得 ②都道府県公安委員会への事前通報が必要（航空法申請とは別）。約'+Math.round(majorAP.dist)+'m地点。'});}
+  if(inAP9k&&nearestAP){reqs.push({t:'warn',title:nearestAP.name+' 9km圏内：DIPS2.0で許可申請（ⅡA）',detail:'空港から約'+(nearestAP.dist/1000).toFixed(1)+'km。空港事務所への事前連絡・調整も必要。飛行10営業日前まで。'});}
+  if(above150){reqs.push({t:'warn',title:'高度'+alt+'m：150m以上は許可申請（ⅡA）',detail:'有人航空機との空域調整も必要。申請書に飛行経路図・最高高度を明記すること。'});}
+  if(night){reqs.push(hasNight&&(hasCert2||hasCert1)?{t:'ok',title:'夜間飛行：夜間限定解除保有のため対応可 ✓',detail:'灯火の装備と飛行マニュアルへの夜間手順記載が必要。DID・空港圏内の場合は別途申請も必要。'}:{t:'warn',title:'夜間飛行：DIPS2.0で承認申請が必要',detail:'夜間限定解除または個別承認申請が必要。'});}
+  if(bvlos){reqs.push(hasBvlos&&(hasCert2||hasCert1)?{t:'ok',title:'目視外飛行：目視外限定解除保有のため対応可 ✓',detail:'第三者が立ち入る可能性がある経路では立入管理措置が必要。'}:{t:'warn',title:'目視外飛行：DIPS2.0で承認申請が必要',detail:'目視外限定解除または個別承認申請が必要。'});}
+  if(close){reqs.push({t:'warn',title:'人・物件30m未満：DIPS2.0で承認申請',detail:'補助者の配置と立入管理措置が前提。'});}
+  if(crowd){reqs.push({t:'stop',title:'第三者上空（立入管理なし）：カテゴリーⅢ — 一等資格が必要',detail:'二等資格では原則不可。一等操縦士＋第一種機体認証＋国土交通大臣の許可が必要。'});}
+  if(event){reqs.push({t:'stop',title:'催し物上空：カテゴリーⅡA 個別許可申請（必須）',detail:'主催者の承諾書類・立入管理計画を含む申請書をDIPS2.0で提出。飛行10営業日前まで。'});}
+  if(drop){reqs.push({t:'stop',title:'物件投下・危険物輸送：カテゴリーⅡA 個別許可申請',detail:'農薬散布含む。品目ごとの特定飛行マニュアル作成・提出が必要。'});}
+  if(agri){reqs.push({t:'stop',title:'農薬散布：農水省ガイドライン＋DIPS2.0申請',detail:'農薬取締法に基づく適正使用が必要。市区町村農業委員会への事前届出と近隣農家への周知が必要。'});}
+  if(road){reqs.push({t:'warn',title:'道路使用：管轄警察署への道路使用許可申請',detail:'航空法の申請とは別に道路交通法に基づく申請が必要。許可まで1〜2週間。'});}
+  if(heavy){reqs.push({t:'stop',title:'25kg以上の機体：カテゴリーⅡA 個別許可申請',detail:'機体仕様書・整備記録・保険の加入証明等を添付すること。'});}
+  if(restricted){reqs.push({t:'stop',title:'特定重要施設周辺：原則飛行禁止（小型無人機等飛行禁止法）',detail:'管轄警察・施設管理者への事前申請・通報が必要。許可されないケースが多い。'});}
+  if(emergency){reqs.push({t:'stop',title:'緊急用務空域：飛行禁止',detail:'国土交通大臣が指定した緊急用務空域。指定解除まで飛行不可。'});}
+  if(river){reqs.push({t:'warn',title:'河川・湖沼・海岸：管理者への事前確認',detail:'一級河川は国交省河川事務所、二級河川は都道府県、海上は海上保安部へ事前確認が必要。'});}
+  if(park){reqs.push({t:'warn',title:'公園・国立公園：公園管理者への許可申請',detail:'都市公園は各自治体公園管理事務所、国立公園は環境省または都道府県自然保護課へ。'});}
+  if(!hasIns&&isSpecial){reqs.push({t:'warn',title:'第三者損害賠償保険：加入を強く推奨',detail:'申請時に加入状況の記載を求められる場合があります。'});}
+  reqs.push({t:'ok',title:'飛行計画の通報（全飛行必須）',detail:'DIPS2.0で飛行計画を登録・通報。特定飛行の場合は飛行前日〜当日に通報を完了させること。'});
+  reqs.push({t:'ok',title:'飛行記録の作成・保存（全飛行必須）',detail:'飛行日時・場所・操縦者・機体番号・飛行時間・異常有無を毎回記録し一定期間保存すること。'});
+
+  /* 申請先一覧 */
+  const city=currentCity||currentPref||'（飛行地）';
+  function sLink(q,lbl){const u='https://www.google.com/search?q='+encodeURIComponent(q);return '<a href="'+esc(u)+'" target="_blank" rel="noopener" class="search-link">🔍 '+esc(lbl)+'</a>';}
+  const subs=[];
+  if(did||inAP9k||above150||night||bvlos||close||event||drop||heavy||crowd||agri){
+    subs.push({reason:'航空法に基づく特定飛行',law:'航空法 第132条の85・第132条の86',to:'国土交通省（DIPS2.0）',detail:'飛行開始の10営業日前（土日祝除く）までにオンライン申請。',deadline:'飛行10営業日前まで',url:'https://dips2.mlit.go.jp/',links:[]});
+  }
+  if(inMaj300&&majorAP){
+    subs.push({reason:majorAP.name+'周辺300m圏内の飛行',law:'小型無人機等飛行禁止法 第2条・第9条',to:'都道府県公安委員会（警察）＋空港管理者',detail:'①管轄警察本部または空港警察署へ通報 ②空港管理者の同意書を取得。',deadline:'飛行前まで（余裕をもって）',url:'https://www.npa.go.jp/',links:[sLink(city+' 警察署 電話番号',city+' 警察署'),sLink(majorAP.name+' 空港管理者 問い合わせ','空港管理者')]});
+  }
+  if(restricted){subs.push({reason:'特定重要施設周辺の飛行',law:'小型無人機等飛行禁止法 第2条・第9条',to:'管轄警察署＋施設管理者',detail:'原則飛行禁止。管轄警察署への事前通報と施設管理者の許可が必要。',deadline:'飛行前（許可が下りない場合あり）',url:'https://www.npa.go.jp/',links:[sLink(city+' 警察署 住所 電話番号',city+' 管轄警察署')]});}
+  if(road){subs.push({reason:'公道上・道路際からの離発着',law:'道路交通法 第77条',to:'管轄警察署（交通課）',detail:'管轄警察署の交通課へ申請。申請書・図面・飛行計画書を添付。',deadline:'飛行1〜2週間前まで',url:'https://www.npa.go.jp/bureau/traffic/content/road_use.pdf',links:[sLink(city+' 警察署 交通課 道路使用許可',city+' 警察署 交通課')]});}
+  if(river){subs.push({reason:'河川・湖沼・海岸上空の飛行',law:'河川法 / 海岸法',to:'河川管理者（国交省河川事務所・都道府県）または海上保安庁',detail:'一級河川は国交省河川事務所、二級河川は都道府県担当課、海上は海上保安部へ。',deadline:'飛行前（早めに問い合わせ）',url:'https://www.mlit.go.jp/river/index.html',links:[sLink(city+' 河川事務所 電話番号',city+' 河川事務所'),sLink(city+' 海上保安部 電話番号','最寄り 海上保安部')]});}
+  if(park){subs.push({reason:'公園・自然公園内での飛行',law:'都市公園法 / 自然公園法',to:'公園管理者（各自治体）または環境省・都道府県',detail:'都市公園は各市区町村公園管理事務所へ。国立公園は環境省または都道府県自然保護課へ。',deadline:'飛行前（数週間かかる場合あり）',url:'https://www.env.go.jp/nature/np/intro.html',links:[sLink(city+' 公園管理事務所 ドローン 許可',city+' 公園管理事務所')]});}
+  if(agri){subs.push({reason:'農薬散布',law:'農薬取締法',to:'市区町村農業委員会・都道府県農業改良普及センター',detail:'農薬の適正使用義務あり。散布前に近隣農家・住民へ周知。',deadline:'散布前（余裕をもって）',url:'https://www.maff.go.jp/j/nouyaku/',links:[sLink(city+' 農業委員会 電話番号',city+' 農業委員会')]});}
+
+  /* ── HTML生成 ── */
+  const stopN=reqs.filter(r=>r.t==='stop').length;
+  const warnN=reqs.filter(r=>r.t==='warn').length;
+  const okN=reqs.filter(r=>r.t==='ok').length;
+  const dotMap={ok:['dok','✓'],warn:['dwarn','!'],stop:['dstop','✕']};
+
+  let listHtml='';
+  reqs.forEach(r=>{const[cls,sym]=dotMap[r.t];listHtml+='<div class="req-item"><div class="req-dot '+cls+'">'+sym+'</div><div><div class="req-t">'+esc(r.title)+'</div><div class="req-d">'+esc(r.detail)+'</div></div></div>';});
+
+  let subHtml='';
+  if(subs.length){
+    let rows='';
+    subs.forEach((s,i)=>{
+      const linksHtml=s.links&&s.links.length?'<div class="search-links">'+s.links.join('')+'</div>':'';
+      rows+='<div class="sub-item"><div class="sub-num">'+(i+1)+'</div>'
+        +'<div class="sub-body"><div class="sub-reason">'+esc(s.reason)+'</div><div class="sub-law">'+esc(s.law)+'</div></div>'
+        +'<div class="sub-dest"><div class="sub-to">📮 '+esc(s.to)+'</div><div class="sub-detail">'+esc(s.detail)+'</div>'
+        +'<span class="sub-deadline">⏱ '+esc(s.deadline)+'</span>'
+        +' <a href="'+esc(s.url)+'" target="_blank" rel="noopener" style="font-size:11px;color:var(--accent);text-decoration:none;margin-left:6px;">公式サイト ↗</a>'
+        +linksHtml+'</div></div>';
+    });
+    subHtml='<div class="sub-card"><div class="sub-head">SUBMISSION LIST — 申請先一覧</div>'+rows+'</div>';
+  }
+
+  /* 申請書下書き */
+  const conds=[];
+  if(did)conds.push('人口集中地区上空');
+  if(inAP9k&&nearestAP)conds.push(nearestAP.name+'周辺（約'+(nearestAP.dist/1000).toFixed(1)+'km）');
+  if(above150)conds.push('地表から'+alt+'m以上の上空');
+  if(night)conds.push('夜間飛行');
+  if(bvlos)conds.push('目視外飛行');
+  if(close)conds.push('人・物件から30m未満');
+  if(crowd)conds.push('第三者上空（立入管理なし）');
+  if(event)conds.push('催し物会場上空');
+  if(drop)conds.push('物件投下・危険物輸送');
+  if(agri)conds.push('農薬散布');
+  if(road)conds.push('道路使用');
+  if(heavy)conds.push('重量25kg以上の機体');
+
+  const certList=[];
+  if(hasCert1)certList.push('一等無人航空機操縦士');
+  if(hasCert2)certList.push('二等無人航空機操縦士');
+  if(hasNight)certList.push('夜間飛行限定解除');
+  if(hasBvlos)certList.push('目視外飛行限定解除');
+
+  function draftRow(key,val){
+    const cls=val?'':'empty';
+    const display=val||'（未入力）';
+    return '<div class="draft-row"><div class="draft-key">'+esc(key)+'</div><div class="draft-val '+cls+'">'+esc(display)+'</div></div>';
+  }
+
+  const draftHtml='<div class="draft-card">'
+    +'<div class="draft-head"><span>📝 DIPS2.0 申請書 下書き（コピペ用）</span>'
+    +'<div><button class="copy-btn" onclick="copyDraft()">📋 全文コピー</button><span class="copy-notice" id="copy-notice">✓ コピーしました</span></div></div>'
+    +'<div class="draft-body" id="draft-body">'
+
+    +'<div class="draft-section"><div class="draft-section-title">▍ 申請者情報</div>'
+    +draftRow('氏名',pilotName)
+    +draftRow('DIPS2.0 ID',pilotDips)
+    +draftRow('保険',pilotIns)
+    +'</div>'
+
+    +'<div class="draft-section"><div class="draft-section-title">▍ 飛行する機体</div>'
+    +draftRow('機体登録番号',pilotKikai)
+    +draftRow('機体名称',pilotModel)
+    +'</div>'
+
+    +'<div class="draft-section"><div class="draft-section-title">▍ 飛行の目的</div>'
+    +draftRow('飛行目的',purposeLabel)
+    +draftRow('備考・詳細',memo)
+    +'</div>'
+
+    +'<div class="draft-section"><div class="draft-section-title">▍ 飛行の日時・場所</div>'
+    +draftRow('飛行予定日時',flightDate)
+    +draftRow('飛行場所',address)
+    +draftRow('飛行予定高度',alt?alt+'m':'')
+    +'</div>'
+
+    +'<div class="draft-section"><div class="draft-section-title">▍ 飛行の方法（特定飛行の種別）</div>'
+    +draftRow('該当する特定飛行',conds.join('、')||'特定飛行なし')
+    +'</div>'
+
+    +'<div class="draft-section"><div class="draft-section-title">▍ 操縦者の技能証明等</div>'
+    +draftRow('保有資格',certList.join('、')||'なし')
+    +'</div>'
+
+    +'<div style="font-size:11px;color:var(--text3);margin-top:8px;">※ 上記は参考情報です。実際のDIPS2.0申請では各項目を正確に入力し、必要書類（飛行マニュアル・保険証書等）を添付してください。</div>'
+    +'</div></div>';
+
+  let flowHtml='';
+  if(isSpecial){
+    const steps=[['機体登録の確認','DIPS2.0で登録番号を確認。未登録なら先に登録を完了する。'],['飛行空域の事前確認','Droneroute・地理院地図で禁止区域・DID・空港圏を確認する。'],['各申請先への申請','上記「申請先一覧」の期限に従い、各機関へ申請・確認を行う。'],['DIPS2.0で許可・承認申請','飛行開始10営業日前（土日祝除く）までに申請を完了させる。'],['許可書の受領と携帯','すべての許可書を受領したら飛行当日に必ず携帯する。'],['飛行計画の通報','飛行前日〜当日にDIPS2.0で飛行計画を通報する。'],['飛行実施・記録作成','飛行後は記録を作成・保存。事故・重大インシデントは速報義務あり。']];
+    let stepsHtml='';
+    steps.forEach(([t,d],i)=>{stepsHtml+='<div class="flow-step"><div class="flow-num">'+(i+1)+'</div><div class="flow-text"><strong>'+esc(t)+'</strong>'+esc(d)+'</div></div>';});
+    flowHtml='<div class="flow-card"><div class="slabel">PROCESS — 申請の流れ</div>'+stepsHtml+'</div>';
+  }
+
+  const html='<div class="cat-header"><span class="cat-badge '+catKey+'">'+esc(catLabel)+'</span><div class="cat-desc">'+esc(catDesc)+'</div></div>'
+    +'<div class="stat-grid"><div class="stat-c"><div class="stat-n" style="color:'+(stopN>0?'var(--red)':'var(--green)')+'">'+stopN+'</div><div class="stat-l">禁止・要注意</div></div>'
+    +'<div class="stat-c"><div class="stat-n" style="color:'+(warnN>0?'var(--amber)':'var(--green)')+'">'+warnN+'</div><div class="stat-l">申請・手続き</div></div>'
+    +'<div class="stat-c"><div class="stat-n" style="color:var(--green)">'+okN+'</div><div class="stat-l">確認・実施事項</div></div></div>'
+    +'<div class="req-card"><div class="req-head">CHECKLIST — 必要な手続き・対応一覧</div>'+listHtml+'</div>'
+    +subHtml
+    +draftHtml
+    +flowHtml
+    +'<div class="footnote">※ 本ツールは参考情報です。最新規制は必ず公式で確認してください。<br>'
+    +'<a href="https://dips2.mlit.go.jp/" target="_blank" rel="noopener">DIPS2.0</a> | '
+    +'<a href="https://www.droneroute.jp/" target="_blank" rel="noopener">Droneroute</a> | '
+    +'<a href="https://www.mlit.go.jp/koku/koku_fr10_000042.html" target="_blank" rel="noopener">国土交通省</a></div>';
+
+  document.getElementById('result-inner').innerHTML=html;
+  document.getElementById('result-area').style.display='block';
+  setTimeout(()=>document.getElementById('result-area').scrollIntoView({behavior:'smooth',block:'start'}),60);
+
+  const condList=['night','bvlos','close','crowd','event','drop','road','heavy','restricted','emergency','river','park','agri'].filter(cv).join(', ')||'なし';
+  saveHistory({date:new Date().toLocaleString('ja-JP'),address,catKey,catLabel,stopN,warnN,airport:nearestAP?nearestAP.name:'—',conds:condList});
+}
+
+/* ============================================================
+   COPY DRAFT
+============================================================ */
+function copyDraft(){
+  const body=document.getElementById('draft-body');
+  if(!body)return;
+  const rows=body.querySelectorAll('.draft-row');
+  let text='【DIPS2.0 申請書 下書き】\n\n';
+  let section='';
+  body.querySelectorAll('.draft-section').forEach(sec=>{
+    const title=sec.querySelector('.draft-section-title');
+    if(title)text+='\n'+title.textContent+'\n';
+    sec.querySelectorAll('.draft-row').forEach(row=>{
+      const k=row.querySelector('.draft-key')?.textContent||'';
+      const v=row.querySelector('.draft-val')?.textContent||'';
+      text+=k+': '+v+'\n';
+    });
+  });
+  navigator.clipboard.writeText(text).then(()=>{
+    const n=document.getElementById('copy-notice');
+    if(n){n.style.display='inline';setTimeout(()=>n.style.display='none',2000);}
+  }).catch(()=>{
+    const ta=document.createElement('textarea');
+    ta.value=text;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);
+  });
+}
+
+/* ============================================================
+   PREFLIGHT CHECKLIST
+============================================================ */
+const PREFLIGHT=[
+  {cat:'📋 法的確認',items:[
+    {id:'pf_dips_notif',label:'DIPS2.0で飛行計画を通報済み',note:'飛行前日〜当日に通報を完了'},
+    {id:'pf_permit',label:'許可書・承認書を携帯している',note:'特定飛行の場合は必須'},
+    {id:'pf_airspace',label:'飛行当日の緊急用務空域を確認した',note:'国交省HP・DroneRouteで確認'},
+    {id:'pf_notam',label:'NOTAMを確認した',note:'航空情報サービス（NOTAM）で空域情報を確認'},
+  ]},
+  {cat:'🚁 機体点検',items:[
+    {id:'pf_prop',label:'プロペラに損傷・緩みがない',note:'目視で全枚数確認'},
+    {id:'pf_motor',label:'モーターに異音・振動がない',note:'手で回して確認'},
+    {id:'pf_battery_drone',label:'機体バッテリーが十分に充電されている',note:'飛行に必要な残量（目安80%以上）'},
+    {id:'pf_battery_rc',label:'送信機バッテリーが十分に充電されている',note:''},
+    {id:'pf_camera',label:'カメラ・ジンバルに異常がない',note:'レンズ汚れ・ジンバルロック解除確認'},
+    {id:'pf_sd',label:'SDカード・ストレージに空きがある',note:'撮影目的の場合'},
+    {id:'pf_light',label:'灯火が正常に点灯する（夜間飛行の場合）',note:'夜間飛行時は必須'},
+    {id:'pf_arm',label:'アーム・脚部に損傷がない',note:''},
+  ]},
+  {cat:'📡 システム確認',items:[
+    {id:'pf_gps',label:'GPS衛星を十分に捕捉している',note:'目安: 8機以上・精度良好'},
+    {id:'pf_compass',label:'コンパスキャリブレーションが完了している',note:'場所を変えた場合は必ず実施'},
+    {id:'pf_link',label:'送信機と機体のリンクが確立している',note:'信号強度を確認'},
+    {id:'pf_rth',label:'ホームポイントが正しく設定されている',note:'RTH（リターントゥホーム）地点を確認'},
+    {id:'pf_failsafe',label:'フェイルセーフ設定を確認した',note:'信号途絶時の動作設定'},
+  ]},
+  {cat:'🌤 環境確認',items:[
+    {id:'pf_weather',label:'風速が飛行可能範囲内である',note:'目安: 5m/s以下（機体仕様に応じて）'},
+    {id:'pf_rain',label:'雨・霧・雪がない',note:'防水仕様でない機体は特に注意'},
+    {id:'pf_visibility',label:'視界が確保されている',note:'目視飛行の場合は特に重要'},
+    {id:'pf_obstacle',label:'飛行経路上に障害物がない',note:'電線・木・建物などを事前確認'},
+  ]},
+  {cat:'👥 安全確保',items:[
+    {id:'pf_area',label:'飛行エリアの立入確認・周知を行った',note:'第三者が立ち入らないよう措置'},
+    {id:'pf_bystander',label:'周囲に一般人がいないことを確認した',note:''},
+    {id:'pf_helper',label:'補助者が配置されている（必要な場合）',note:'目視外・夜間・DID等では推奨'},
+    {id:'pf_emergency',label:'緊急時の連絡先・対応手順を確認した',note:'事故時は速報義務あり'},
+  ]},
+];
+
+function renderPreflight(){
+  let html='';
+  let totalChecked=0,total=0;
+  let saved={};
+  try{saved=JSON.parse(localStorage.getItem(PF_KEY)||'{}');}catch(e){}
+
+  PREFLIGHT.forEach(cat=>{
+    const checkedInCat=cat.items.filter(i=>saved[i.id]).length;
+    html+='<div class="pf-category">';
+    html+='<div class="pf-cat-title">'+esc(cat.cat)
+      +' <span class="pf-cat-count">'+checkedInCat+'/'+cat.items.length+'</span></div>';
+    cat.items.forEach(item=>{
+      const checked=!!saved[item.id];
+      if(checked)totalChecked++;
+      total++;
+      html+='<div class="pf-item'+(checked?' checked':'')+'" onclick="togglePF(\''+esc(item.id)+'\')">'
+        +'<div class="pf-box">✓</div>'
+        +'<div><div class="pf-label">'+esc(item.label)+'</div>'
+        +(item.note?'<span class="pf-note">'+esc(item.note)+'</span>':'')
+        +'</div></div>';
+    });
+    html+='</div>';
+  });
+
+  document.getElementById('pf-list').innerHTML=html;
+  updatePFProgress(totalChecked,total);
+}
+
+function togglePF(id){
+  let saved={};
+  try{saved=JSON.parse(localStorage.getItem(PF_KEY)||'{}');}catch(e){}
+  saved[id]=!saved[id];
+  localStorage.setItem(PF_KEY,JSON.stringify(saved));
+  renderPreflight();
+}
+
+function updatePFProgress(checked,total){
+  const pct=total?Math.round(checked/total*100):0;
+  document.getElementById('pf-bar').style.width=pct+'%';
+  document.getElementById('pf-pct').textContent=pct+'%';
+  const banner=document.getElementById('pf-ok-banner');
+  banner.style.display=(pct===100)?'block':'none';
+}
+
+function resetPreflight(){
+  if(confirm('飛行前チェックリストをリセットしますか？')){
+    localStorage.removeItem(PF_KEY);renderPreflight();
+  }
+}
+
+/* ============================================================
+   PILOT PROFILE
+============================================================ */
+function getPilot(){try{return JSON.parse(localStorage.getItem(PILOT_KEY)||'null');}catch(e){return null;}}
+function savePilot(){
+  const d={};
+  ['name','birth','tel','email','addr','dips','kikai','model','weight','ins'].forEach(k=>{d[k]=document.getElementById('p-'+k).value;});
+  ['cert1','cert2','night-cert','bvlos-cert','juida','dpa','drone-check','insurance'].forEach(id=>{
+    const el=document.querySelector('#tab-pilot [data-id="'+id+'"]');d['chk_'+id]=el?el.classList.contains('on'):false;
+  });
+  localStorage.setItem(PILOT_KEY,JSON.stringify(d));
+  const n=document.getElementById('save-notice');n.style.display='inline';setTimeout(()=>n.style.display='none',2500);
+  renderPilotSummary();
+}
+function loadPilot(){
+  const d=getPilot();if(!d)return;
+  ['name','birth','tel','email','addr','dips','kikai','model','weight','ins'].forEach(k=>{const el=document.getElementById('p-'+k);if(el&&d[k]!=null)el.value=d[k];});
+  ['cert1','cert2','night-cert','bvlos-cert','juida','dpa','drone-check','insurance'].forEach(id=>{
+    const el=document.querySelector('#tab-pilot [data-id="'+id+'"]');if(el&&d['chk_'+id]!==undefined)el.classList.toggle('on',!!d['chk_'+id]);
+  });
+}
+function renderPilotSummary(){
+  const p=getPilot(),box=document.getElementById('pilot-summary');
+  if(!p||!p.name){box.innerHTML='';return;}
+  const badges=[];
+  if(p.chk_cert1)badges.push('一等操縦士');if(p.chk_cert2)badges.push('二等操縦士');
+  if(p['chk_night-cert'])badges.push('夜間限定解除');if(p['chk_bvlos-cert'])badges.push('目視外限定解除');
+  if(p.chk_insurance)badges.push('保険加入済');
+  box.innerHTML='<div class="pilot-box"><strong>🪪 '+esc(p.name)+'</strong> のプロフィールで確認中<div class="pp-badges">'+badges.map(b=>'<span class="pp-badge">'+esc(b)+'</span>').join('')+'</div></div>';
+}
+
+/* ============================================================
+   HISTORY
+============================================================ */
+function saveHistory(e){let h=[];try{h=JSON.parse(localStorage.getItem(HIST_KEY)||'[]');}catch(x){}h.unshift(e);localStorage.setItem(HIST_KEY,JSON.stringify(h.slice(0,10)));}
+function renderHistory(){
+  const el=document.getElementById('history-list');
+  let h=[];try{h=JSON.parse(localStorage.getItem(HIST_KEY)||'[]');}catch(x){}
+  if(!h.length){el.innerHTML='<div style="color:var(--text3);font-size:13px;padding:10px 0;">まだ履歴がありません。</div>';return;}
+  const cm={c1:'var(--green)',c2b:'var(--blue)',c2a:'var(--amber)',c3:'var(--red)',cng:'var(--red)'};
+  el.innerHTML=h.map(e=>'<div class="hist-item"><div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;"><span style="font-size:11px;font-family:var(--mono);color:var(--text3);">'+esc(e.date)+'</span><span style="font-size:12px;font-weight:500;color:'+(cm[e.catKey]||'var(--text2)')+';">'+esc(e.catLabel)+'</span></div><div style="font-size:13px;color:var(--text);margin-bottom:2px;">📍 '+esc(e.address||'（住所未入力）')+'</div><div style="font-size:12px;color:var(--text3);">✈ '+esc(e.airport)+'　条件: '+esc(e.conds)+'</div><div style="font-size:12px;margin-top:2px;"><span style="color:var(--red);">禁止×'+e.stopN+'</span>　<span style="color:var(--amber);">申請!'+e.warnN+'</span></div></div>').join('');
+}
+function clearHistory(){if(confirm('履歴をすべて削除しますか？')){localStorage.removeItem(HIST_KEY);renderHistory();}}
+
+/* ============================================================
+   WEATHER (Open-Meteo — APIキー不要・無料)
+============================================================ */
+async function fetchWeather(lat, lon) {
+  const card = document.getElementById('weather-card');
+  const body = document.getElementById('weather-body');
+  card.style.display = 'block';
+  body.textContent = '🌤 気象情報を取得中...';
+  try {
+    const url = 'https://api.open-meteo.com/v1/forecast'
+      + '?latitude=' + lat.toFixed(4)
+      + '&longitude=' + lon.toFixed(4)
+      + '&current=temperature_2m,relative_humidity_2m,weather_code,'
+      + 'wind_speed_10m,wind_direction_10m,wind_gusts_10m,visibility'
+      + '&hourly=wind_speed_10m,wind_gusts_10m'
+      + '&forecast_days=1'
+      + '&timezone=Asia%2FTokyo'
+      + '&wind_speed_unit=ms';
+    const res = await fetch(url);
+    if (!res.ok) throw new Error();
+    const d = await res.json();
+    const c = d.current;
+
+    const windSpeed  = c.wind_speed_10m;
+    const windGust   = c.wind_gusts_10m;
+    const temp       = c.temperature_2m;
+    const humidity   = c.relative_humidity_2m;
+    const visibility = c.visibility;
+    const wcode      = c.weather_code;
+
+    // 気象コード → 日本語
+    const wcMap = {
+      0:'快晴',1:'晴れ',2:'一部曇り',3:'曇り',
+      45:'霧',48:'着氷性の霧',51:'小雨',53:'中程度の雨',55:'強い雨',
+      61:'弱い雨',63:'中程度の雨',65:'強い雨',
+      71:'弱い雪',73:'中程度の雪',75:'強い雪',
+      80:'にわか雨',81:'やや強いにわか雨',82:'激しいにわか雨',
+      95:'雷雨',96:'ひょうを伴う雷雨',99:'強いひょうを伴う雷雨',
+    };
+    const wLabel = wcMap[wcode] || '不明（コード:'+wcode+')';
+
+    // 飛行可否の判定
+    const warnings = [];
+    if (windSpeed > 10) warnings.push({msg:'風速'+windSpeed.toFixed(1)+'m/s — 強風注意（10m/s超）', level:'stop'});
+    else if (windSpeed > 5) warnings.push({msg:'風速'+windSpeed.toFixed(1)+'m/s — 注意（5m/s超）', level:'warn'});
+    if (windGust > 12) warnings.push({msg:'最大瞬間風速'+windGust.toFixed(1)+'m/s — 突風注意', level:'warn'});
+    if ([45,48,51,53,55,61,63,65,71,73,75,80,81,82,95,96,99].includes(wcode))
+      warnings.push({msg:'悪天候（'+wLabel+'）— 飛行注意', level:'warn'});
+    if (visibility && visibility < 1000)
+      warnings.push({msg:'視程'+Math.round(visibility)+'m — 視程不良注意', level:'stop'});
+
+    // 風向
+    const dirs=['北','北北東','北東','東北東','東','東南東','南東','南南東','南','南南西','南西','西南西','西','西北西','北西','北北西'];
+    const windDir = dirs[Math.round(c.wind_direction_10m / 22.5) % 16];
+
+    const okColor = windSpeed <= 5 ? 'var(--green)' : windSpeed <= 10 ? 'var(--amber)' : 'var(--red)';
+    const flightJudge = warnings.some(w=>w.level==='stop')
+      ? '<span style="color:var(--red);font-weight:500;">⛔ 飛行注意・要判断</span>'
+      : warnings.length
+        ? '<span style="color:var(--amber);font-weight:500;">⚠ 条件付き飛行可</span>'
+        : '<span style="color:var(--green);font-weight:500;">✓ 飛行可能な気象条件</span>';
+
+    let warnHtml = '';
+    warnings.forEach(w => {
+      const col = w.level === 'stop' ? 'var(--red)' : 'var(--amber)';
+      warnHtml += '<div style="color:'+col+';font-size:12px;margin-top:4px;">⚠ '+esc(w.msg)+'</div>';
+    });
+
+    body.innerHTML =
+      '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin-bottom:10px;">'
+      + wItem('天気', wLabel)
+      + wItem('気温', temp+'°C')
+      + wItem('湿度', humidity+'%')
+      + wItem('風速', '<span style="color:'+okColor+';font-weight:500;">'+windSpeed.toFixed(1)+'m/s</span> '+windDir)
+      + wItem('瞬間最大風速', windGust.toFixed(1)+'m/s')
+      + wItem('視程', visibility ? (visibility >= 1000 ? (visibility/1000).toFixed(1)+'km' : Math.round(visibility)+'m') : '—')
+      + '</div>'
+      + '<div style="margin-bottom:6px;">飛行判定: '+flightJudge+'</div>'
+      + warnHtml
+      + '<div style="font-size:11px;color:var(--text3);margin-top:8px;">データ: <a href="https://open-meteo.com" target="_blank" rel="noopener" style="color:var(--accent);">Open-Meteo</a> | 現在時刻付近の予報値。必ず現地で気象を確認してください。</div>';
+  } catch(e) {
+    body.innerHTML = '<span style="color:var(--text3);">気象情報の取得に失敗しました。インターネット接続を確認してください。</span>';
+  }
+}
+function wItem(label, val) {
+  return '<div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:8px 10px;">'
+    +'<div style="font-size:10px;color:var(--text3);margin-bottom:2px;">'+esc(label)+'</div>'
+    +'<div style="font-size:13px;color:var(--text);">'+val+'</div>'
+    +'</div>';
+}
+
+/* ============================================================
+   FLIGHT ROUTE DRAWING
+============================================================ */
+let routeMode = false;
+let routePoints = [];       // [{lat,lon}]
+let routePolyline = null;
+let routeMarkers = [];
+
+function toggleRouteMode() {
+  routeMode = !routeMode;
+  const btn = document.getElementById('route-toggle');
+  btn.textContent = 'ルート描画モード: ' + (routeMode ? 'ON' : 'OFF');
+  btn.style.color = routeMode ? 'var(--green)' : 'var(--blue)';
+  btn.style.borderColor = routeMode ? 'rgba(34,211,161,.35)' : 'rgba(96,165,250,.35)';
+  document.getElementById('route-info').textContent = routeMode
+    ? '✏️ 地図をクリックして経由点を追加中... (' + routePoints.length + '点)'
+    : '地図をクリックして経由点を追加。ルート全体の空域が判定されます。';
+}
+
+function addRoutePoint(lat, lon) {
+  if (!routeMode) return;
+  routePoints.push({lat, lon});
+
+  // マーカー追加
+  const icon = L.divIcon({
+    className: '',
+    html: '<div style="width:10px;height:10px;background:var(--green);border:2px solid #fff;border-radius:50%;box-shadow:0 0 6px rgba(34,211,161,.6);"></div>',
+    iconSize: [10,10], iconAnchor:[5,5],
+  });
+  const marker = L.marker([lat,lon],{icon}).addTo(map);
+  marker.bindTooltip('経由点'+ routePoints.length, {permanent:false});
+  routeMarkers.push(marker);
+
+  // ポリライン更新
+  if (routePolyline) map.removeLayer(routePolyline);
+  if (routePoints.length >= 2) {
+    routePolyline = L.polyline(routePoints.map(p=>[p.lat,p.lon]), {
+      color:'#22d3a1', weight:2.5, dashArray:'6,4', opacity:0.85,
+    }).addTo(map);
+  }
+
+  // 全経由点の距離・空域チェック
+  updateRouteInfo();
+  document.getElementById('route-info').textContent =
+    '✏️ 地図をクリックして経由点を追加中... (' + routePoints.length + '点)';
+}
+
+function updateRouteInfo() {
+  if (routePoints.length < 2) return;
+  // 総距離
+  let totalDist = 0;
+  for (let i = 1; i < routePoints.length; i++) {
+    totalDist += haversine(routePoints[i-1].lat, routePoints[i-1].lon, routePoints[i].lat, routePoints[i].lon);
+  }
+  // 全経由点で最も近い空港
+  let minAP = null, minDist = Infinity;
+  routePoints.forEach(p => {
+    AIRPORTS.forEach(ap => {
+      const d = haversine(p.lat, p.lon, ap.lat, ap.lon);
+      if (d < minDist) { minDist = d; minAP = ap; }
+    });
+  });
+  const km = (totalDist/1000).toFixed(1);
+  const apKm = (minDist/1000).toFixed(1);
+  let apWarn = '';
+  if (minDist <= 300 && minAP?.major) apWarn = ' 🔴 '+ minAP.name+'300m圏内！';
+  else if (minDist <= 9000) apWarn = ' ⚠ '+minAP.name+' '+apKm+'km（9km圏内）';
+
+  document.getElementById('route-info').textContent =
+    '📏 ルート総距離: ' + km + 'km ｜ 経由点: ' + routePoints.length + '点' + apWarn;
+}
+
+function clearRoute() {
+  routePoints = [];
+  routeMarkers.forEach(m => map.removeLayer(m));
+  routeMarkers = [];
+  if (routePolyline) { map.removeLayer(routePolyline); routePolyline = null; }
+  document.getElementById('route-info').textContent =
+    '地図をクリックして経由点を追加。ルート全体の空域が判定されます。';
+}
+
+/* ============================================================
+   FLIGHT LOG — 公式様式１準拠
+============================================================ */
+function getLogs() {
+  try { return JSON.parse(localStorage.getItem(LOG_KEY) || '[]'); } catch(e) { return []; }
+}
+function saveLogs(logs) {
+  localStorage.setItem(LOG_KEY, JSON.stringify(logs));
+}
+
+function addLogEntry() {
+  const p = getPilot();
+  const required = ['log-date','log-takeoff-time','log-landing-time','log-duration','log-from','log-to','log-purpose'];
+  for (const id of required) {
+    if (!document.getElementById(id).value.trim()) {
+      alert('「' + document.getElementById(id).previousElementSibling.textContent.replace(' *','') + '」は必須項目です。');
+      return;
+    }
+  }
+  const entry = {
+    id:          Date.now(),
+    date:        document.getElementById('log-date').value,
+    takeoffTime: document.getElementById('log-takeoff-time').value,
+    landingTime: document.getElementById('log-landing-time').value,
+    duration:    parseInt(document.getElementById('log-duration').value) || 0,
+    from:        document.getElementById('log-from').value.trim(),
+    to:          document.getElementById('log-to').value.trim(),
+    purpose:     document.getElementById('log-purpose').value.trim(),
+    special:     document.getElementById('log-special').value.trim(),
+    totalTime:   document.getElementById('log-total-time').value.trim(),
+    incident:    document.getElementById('log-incident').value,
+    note:        document.getElementById('log-note').value.trim(),
+    // パイロット・機体情報（記録時点のスナップショット）
+    pilotName:   p?.name || '',
+    pilotCertNo: p?.dips || '',
+    kikai:       p?.kikai || '',
+    model:       p?.model || '',
+  };
+  const logs = getLogs();
+  logs.unshift(entry);
+  saveLogs(logs);
+
+  // フォームリセット
+  ['log-date','log-takeoff-time','log-landing-time','log-duration','log-from','log-to','log-purpose','log-special','log-total-time','log-note'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+  document.getElementById('log-incident').value = 'なし';
+
+  const n = document.getElementById('log-add-notice');
+  n.style.display = 'inline'; setTimeout(() => n.style.display = 'none', 2000);
+  renderLogList();
+}
+
+function deleteLog(id) {
+  if (!confirm('この記録を削除しますか？')) return;
+  saveLogs(getLogs().filter(e => e.id !== id));
+  renderLogList();
+}
+
+function renderLogList() {
+  const el = document.getElementById('log-list');
+  if (!el) return;
+  const logs = getLogs();
+  if (!logs.length) {
+    el.innerHTML = '<div style="color:var(--text3);font-size:13px;padding:10px 0;">まだ飛行記録がありません。上のフォームから追加してください。</div>';
+    return;
+  }
+  el.innerHTML = logs.map(e => {
+    const incColor = e.incident === 'なし' ? 'var(--green)' : 'var(--red)';
+    return '<div class="card" style="margin-bottom:10px;">'
+      + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">'
+      + '<span style="font-size:13px;font-weight:500;color:var(--accent);">'+esc(e.date)+'</span>'
+      + '<button onclick="deleteLog('+e.id+')" style="background:transparent;border:none;color:var(--text3);cursor:pointer;font-size:12px;">🗑 削除</button>'
+      + '</div>'
+      + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:12px;color:var(--text2);">'
+      + logRow('操縦者', e.pilotName)
+      + logRow('機体登録番号', e.kikai)
+      + logRow('離陸', e.from + ' ' + e.takeoffTime)
+      + logRow('着陸', e.to + ' ' + e.landingTime)
+      + logRow('飛行時間', e.duration + '分')
+      + logRow('総飛行時間', e.totalTime || '—')
+      + logRow('目的・経路', e.purpose)
+      + logRow('特定飛行', e.special || 'なし')
+      + logRow('安全影響事項', '<span style="color:'+incColor+';">'+esc(e.incident)+'</span>')
+      + (e.note ? logRow('備考', e.note) : '')
+      + '</div>'
+      + '</div>';
+  }).join('');
+}
+
+function logRow(key, val) {
+  return '<div style="background:var(--bg3);border-radius:4px;padding:5px 8px;">'
+    + '<div style="font-size:10px;color:var(--text3);">'+esc(key)+'</div>'
+    + '<div style="color:var(--text);">'+esc(String(val||''))+'</div>'
+    + '</div>';
+}
+
+/* ── CSV出力 ── */
+function exportLogCSV() {
+  const logs = getLogs();
+  if (!logs.length) { alert('飛行記録がありません。'); return; }
+  const headers = [
+    '飛行年月日','操縦者氏名','技能証明書番号（DIPS ID）',
+    '機体登録番号','機体名称',
+    '離陸場所','離陸時刻','着陸場所','着陸時刻',
+    '飛行時間（分）','製造後総飛行時間',
+    '飛行目的・経路概要','飛行させた特定飛行の種別',
+    '安全に影響のあった事項','不具合・備考',
+  ];
+  const rows = logs.map(e => [
+    e.date, e.pilotName, e.pilotCertNo,
+    e.kikai, e.model,
+    e.from, e.takeoffTime, e.to, e.landingTime,
+    e.duration, e.totalTime,
+    e.purpose, e.special,
+    e.incident, e.note,
+  ]);
+  const csv = [headers, ...rows].map(r =>
+    r.map(v => '"' + String(v||'').replace(/"/g,'""') + '"').join(',')
+  ).join('\r\n');
+  const bom = '\uFEFF';
+  const blob = new Blob([bom + csv], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = '飛行記録_' + new Date().toISOString().slice(0,10) + '.csv';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+/* ── Excel出力（SheetJS・様式１準拠） ── */
+function exportLogXLSX() {
+  if (typeof XLSX === 'undefined') { alert('Excelライブラリの読み込みに失敗しました。インターネット接続を確認してください。'); return; }
+  const logs = getLogs();
+  if (!logs.length) { alert('飛行記録がありません。'); return; }
+  const p = getPilot();
+
+  const wb = XLSX.utils.book_new();
+
+  /* ── シート1: 様式１ 飛行記録 ── */
+  const ws1Data = [];
+  // タイトル・機体情報ヘッダー
+  ws1Data.push(['無人航空機 飛行日誌（様式１）飛行記録']);
+  ws1Data.push(['航空法施行規則第236条の84に基づく']);
+  ws1Data.push([]);
+  ws1Data.push(['【機体情報】（各ページ冒頭記載事項）']);
+  ws1Data.push(['登録記号', p?.kikai || '']);
+  ws1Data.push(['機種・型式', p?.model || '']);
+  ws1Data.push(['製造者', '']);
+  ws1Data.push(['製造番号', '']);
+  ws1Data.push([]);
+  // 列ヘッダー
+  ws1Data.push([
+    '飛行年月日','操縦者氏名','技能証明書番号',
+    '離陸場所','離陸時刻','着陸場所','着陸時刻',
+    '飛行時間（分）','製造後総飛行時間',
+    '飛行目的・経路概要','特定飛行の種別',
+    '安全影響事項の有無','不具合・備考',
+  ]);
+  // データ行
+  logs.forEach(e => {
+    ws1Data.push([
+      e.date, e.pilotName, e.pilotCertNo,
+      e.from, e.takeoffTime, e.to, e.landingTime,
+      e.duration, e.totalTime,
+      e.purpose, e.special || 'なし',
+      e.incident, e.note || '',
+    ]);
+  });
+
+  const ws1 = XLSX.utils.aoa_to_sheet(ws1Data);
+  // 列幅設定
+  ws1['!cols'] = [
+    {wch:14},{wch:14},{wch:20},
+    {wch:22},{wch:10},{wch:22},{wch:10},
+    {wch:14},{wch:16},
+    {wch:30},{wch:22},
+    {wch:18},{wch:30},
+  ];
+  // タイトルセル結合
+  ws1['!merges'] = [{s:{r:0,c:0},e:{r:0,c:12}}];
+  XLSX.utils.book_append_sheet(wb, ws1, '様式１_飛行記録');
+
+  /* ── シート2: サマリー ── */
+  const totalMin = logs.reduce((s,e) => s + (e.duration||0), 0);
+  const ws2Data = [
+    ['飛行記録サマリー'],
+    [],
+    ['操縦者氏名', p?.name || ''],
+    ['機体登録番号', p?.kikai || ''],
+    ['機体名称', p?.model || ''],
+    ['保険', p?.ins || ''],
+    [],
+    ['統計'],
+    ['総飛行回数', logs.length + '回'],
+    ['総飛行時間', totalMin + '分（' + Math.floor(totalMin/60) + '時間' + (totalMin%60) + '分）'],
+    ['最終飛行日', logs[0]?.date || ''],
+    ['安全影響事項あり', logs.filter(e=>e.incident==='あり').length + '件'],
+    [],
+    ['出力日時', new Date().toLocaleString('ja-JP')],
+    ['出典', '航空法施行規則第236条の84 / 無人航空機の飛行日誌の取扱要領'],
+  ];
+  const ws2 = XLSX.utils.aoa_to_sheet(ws2Data);
+  ws2['!cols'] = [{wch:22},{wch:30}];
+  XLSX.utils.book_append_sheet(wb, ws2, 'サマリー');
+
+  XLSX.writeFile(wb, '飛行日誌_様式１_' + new Date().toISOString().slice(0,10) + '.xlsx');
+}
+
+/* ============================================================
+   GITHUB バージョンチェック
+   package.json または CHANGELOG.md の先頭バージョンを確認
+============================================================ */
+async function checkLatestVersion() {
+  const el = document.getElementById('update-status');
+  if (!el) return;
+  try {
+    // CHANGELOG.mdの先頭行からバージョンを取得
+    const url = GITHUB_RAW_BASE + 'CHANGELOG.md';
+    const res = await fetch(url, {cache: 'no-cache'});
+    if (!res.ok) throw new Error('fetch failed');
+    const text = await res.text();
+    // ## [x.x.x] の形式で最初に出てくるバージョンを取得
+    const match = text.match(/##\s*\[(\d+\.\d+\.\d+)\]/);
+    if (!match) throw new Error('version not found');
+    const latest = match[1];
+
+    if (latest === APP_VER) {
+      el.textContent = '✓ 最新版です (v' + APP_VER + ')';
+      el.style.color = 'var(--green)';
+    } else {
+      el.innerHTML = '🆕 新しいバージョン v' + esc(latest) + ' があります！'
+        + ' <a href="https://github.com/' + GITHUB_USER + '/' + GITHUB_REPO + '/releases" '
+        + 'target="_blank" rel="noopener" style="color:var(--accent);">更新方法を確認 ↗</a>';
+      el.style.color = 'var(--amber)';
+    }
+  } catch(e) {
+    // バージョンチェック失敗は静かに無視（オフライン時など）
+    el.textContent = '';
+  }
+}
+
+/* ============================================================
+   全データ エクスポート / インポート
+============================================================ */
+function exportAllData() {
+  const data = {
+    exportedAt: new Date().toISOString(),
+    appVersion: APP_VER,
+    pilot:      JSON.parse(localStorage.getItem(PILOT_KEY)  || 'null'),
+    flightLog:  JSON.parse(localStorage.getItem(LOG_KEY)    || '[]'),
+    preflight:  JSON.parse(localStorage.getItem(PF_KEY)     || '{}'),
+    history:    JSON.parse(localStorage.getItem(HIST_KEY)   || '[]'),
+  };
+  const json = JSON.stringify(data, null, 2);
+  const blob = new Blob([json], {type: 'application/json;charset=utf-8;'});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = 'drone_checker_backup_' + new Date().toISOString().slice(0,10) + '.json';
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a); URL.revokeObjectURL(url);
+}
+
+function importAllData(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const data = JSON.parse(e.target.result);
+      // バリデーション：最低限の構造チェック
+      if (typeof data !== 'object' || !data.exportedAt) {
+        throw new Error('invalid format');
+      }
+      if (!confirm(
+        'バックアップファイルをインポートします。\n'
+        + 'エクスポート日時: ' + new Date(data.exportedAt).toLocaleString('ja-JP') + '\n'
+        + '現在のデータは上書きされます。よろしいですか？'
+      )) return;
+
+      if (data.pilot)     localStorage.setItem(PILOT_KEY, JSON.stringify(data.pilot));
+      if (data.flightLog) localStorage.setItem(LOG_KEY,   JSON.stringify(data.flightLog));
+      if (data.preflight) localStorage.setItem(PF_KEY,    JSON.stringify(data.preflight));
+      if (data.history)   localStorage.setItem(HIST_KEY,  JSON.stringify(data.history));
+
+      // UI更新
+      loadPilot(); renderPilotSummary(); renderPreflight(); renderLogList();
+
+      const notice = document.getElementById('import-notice');
+      notice.textContent = '✓ インポート完了しました（パイロット情報・飛行記録・履歴を復元）';
+      notice.style.display = 'block';
+      setTimeout(() => notice.style.display = 'none', 4000);
+    } catch(err) {
+      alert('ファイルの読み込みに失敗しました。正しいバックアップファイルを選択してください。');
+    }
+    // ファイル入力をリセット（同じファイルを再選択できるよう）
+    event.target.value = '';
+  };
+  reader.readAsText(file);
+}
+
+/* ============================================================
+   TABS (updated)
+============================================================ */
+function switchTab(id, btn) {
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + id).classList.add('active');
+  btn.classList.add('active');
+  if (id === 'history')  renderHistory();
+  if (id === 'log')      renderLogList();
+  if (id === 'check')    setTimeout(() => map && map.invalidateSize(), 100);
+}
+
+/* ============================================================
+   RESET
+============================================================ */
+function resetAll(){
+  document.getElementById('address').value='';document.getElementById('altitude').value='';
+  document.getElementById('memo').value='';document.getElementById('purpose').value='';
+  document.getElementById('flight-date').value='';
+  document.getElementById('geo-result').style.display='none';
+  document.getElementById('detect-row').style.display='none';
+  document.getElementById('map-hint').classList.remove('hidden');
+  document.getElementById('weather-card').style.display='none';
+  document.querySelectorAll('#tab-check .chk-item').forEach(el=>el.classList.remove('on'));
+  document.getElementById('result-area').style.display='none';
+  if(mapMarker){map.removeLayer(mapMarker);mapMarker=null;}
+  pinCircles.forEach(c=>map.removeLayer(c));pinCircles=[];
+  clearRoute();
+  if(routeMode) toggleRouteMode();
+  geoLat=null;geoLon=null;autoDID=null;nearestAP=null;majorAP=null;currentPref='';currentCity='';
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+/* ============================================================
+   INIT
+============================================================ */
+window.addEventListener('DOMContentLoaded',()=>{
+  initMap();loadPilot();renderPilotSummary();renderPreflight();renderLogList();
+  const today = new Date().toISOString().slice(0,10);
+  document.getElementById('log-date').value = today;
+  // 起動時にGitHubバージョンチェック（失敗しても動作に影響なし）
+  checkLatestVersion();
+});
+</script>
+</body>
+</html>
