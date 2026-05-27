@@ -237,7 +237,26 @@ hr.div{border:none;border-top:1px solid var(--border);margin:18px 0;}
 /* ── HISTORY ── */
 .hist-item{background:var(--bg2);border:1px solid var(--border);border-radius:var(--rl);padding:11px 15px;margin-bottom:10px;}
 
-/* ── LEAFLET ── */
+/* ── EDIT MODAL ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.65);z-index:2000;display:none;align-items:center;justify-content:center;padding:16px;}
+.modal-overlay.open{display:flex;animation:fadeIn .2s ease;}
+.modal-box{background:var(--bg2);border:1px solid var(--border2);border-radius:var(--rl);width:100%;max-width:680px;max-height:90vh;overflow-y:auto;}
+.modal-head{padding:14px 18px;background:var(--bg3);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.modal-title{font-size:14px;font-weight:500;color:var(--accent);}
+.modal-close{background:transparent;border:none;color:var(--text3);font-size:20px;cursor:pointer;line-height:1;}
+.modal-close:hover{color:var(--text);}
+.modal-body{padding:18px;}
+.modal-foot{padding:12px 18px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end;}
+.btn-primary{padding:9px 20px;background:var(--accent2);border:none;color:#fff;border-radius:var(--r);font-size:13px;font-family:var(--font);cursor:pointer;font-weight:500;}
+.btn-primary:hover{opacity:.85;}
+.btn-cancel{padding:9px 16px;background:transparent;border:1px solid var(--border2);color:var(--text3);border-radius:var(--r);font-size:13px;font-family:var(--font);cursor:pointer;}
+.btn-cancel:hover{color:var(--text);}
+
+/* ── LAW ALERT BANNER (改正案警告用) ── */
+.law-alert-bar{background:rgba(248,113,113,0.10);border:1px solid rgba(248,113,113,0.4);border-radius:var(--r);padding:9px 14px;margin-bottom:12px;font-size:12px;color:var(--text2);display:flex;gap:10px;align-items:flex-start;}
+.law-alert-bar strong{color:var(--red);}
+.law-alert-bar a{color:var(--accent);text-decoration:none;}
+.law-alert-bar a:hover{text-decoration:underline;}
 .leaflet-tile{filter:brightness(0.65) saturate(0.75);}
 .custom-marker div{background:var(--red);width:14px;height:14px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 8px rgba(248,113,113,.7);}
 </style>
@@ -349,7 +368,24 @@ hr.div{border:none;border-top:1px solid var(--border);margin:18px 0;}
     </div>
   </div>
 
-  <div class="slabel">✈ 飛行方法・追加条件</div>
+  <div class="slabel">🏞 飛行場所の種別（土地管理者への確認が必要な場所）</div>
+  <div class="card">
+    <div class="card-title">飛行する場所の種別をすべて選択（航空法とは別に管理者への確認・許可が必要です）</div>
+    <div class="check-group">
+      <div class="chk-item" data-id="loc-public"   onclick="toggleChk(this)"><div class="chk-box">✓</div><div class="chk-label">公有地・公共施設<span class="chk-sub">市区町村・都道府県が管理する土地・建物</span></div><span class="cat-tag ct-2b">管理者</span></div>
+      <div class="chk-item" data-id="loc-private"  onclick="toggleChk(this)"><div class="chk-box">✓</div><div class="chk-label">私有地・民有地<span class="chk-sub">個人・法人が所有する土地・建物</span></div><span class="cat-tag ct-2b">民法</span></div>
+      <div class="chk-item" data-id="loc-tourism"  onclick="toggleChk(this)"><div class="chk-box">✓</div><div class="chk-label">観光地・景勝地<span class="chk-sub">観光名所・史跡・展望台など</span></div><span class="cat-tag ct-2b">観光課</span></div>
+      <div class="chk-item" data-id="loc-beach"    onclick="toggleChk(this)"><div class="chk-box">✓</div><div class="chk-label">海水浴場・砂浜<span class="chk-sub">海水浴場・サーフポイント・砂浜</span></div><span class="cat-tag ct-2b">要確認</span></div>
+      <div class="chk-item" data-id="loc-port"     onclick="toggleChk(this)"><div class="chk-box">✓</div><div class="chk-label">港湾・漁港<span class="chk-sub">港湾・漁港・船着き場など</span></div><span class="cat-tag ct-2b">港湾法</span></div>
+      <div class="chk-item" data-id="loc-farm"     onclick="toggleChk(this)"><div class="chk-box">✓</div><div class="chk-label">農地・田畑<span class="chk-sub">農薬散布以外の目的の農地上空</span></div><span class="cat-tag ct-2b">民法</span></div>
+      <div class="chk-item" data-id="loc-forest"   onclick="toggleChk(this)"><div class="chk-box">✓</div><div class="chk-label">森林・林道・山岳<span class="chk-sub">国有林・民有林・山岳地帯</span></div><span class="cat-tag ct-2b">森林法</span></div>
+      <div class="chk-item" data-id="loc-heritage" onclick="toggleChk(this)"><div class="chk-box">✓</div><div class="chk-label">文化財・史跡・神社仏閣<span class="chk-sub">国・都道府県・市区町村指定の文化財</span></div><span class="cat-tag ct-2b">文化財</span></div>
+      <div class="chk-item" data-id="loc-school"   onclick="toggleChk(this)"><div class="chk-box">✓</div><div class="chk-label">学校・病院・官公庁<span class="chk-sub">学校・大学・病院・役所など</span></div><span class="cat-tag ct-2b">管理者</span></div>
+      <div class="chk-item" data-id="loc-sports"   onclick="toggleChk(this)"><div class="chk-box">✓</div><div class="chk-label">スポーツ施設・競技場<span class="chk-sub">グラウンド・スタジアム・体育館など</span></div><span class="cat-tag ct-2b">管理者</span></div>
+    </div>
+  </div>
+
+  <div class="slabel">✈ 飛行方法・航空法上の条件</div>
   <div class="card">
     <div class="card-title">該当する条件をすべて選択（カテゴリーを色で表示）</div>
     <div class="check-group">
@@ -432,6 +468,10 @@ hr.div{border:none;border-top:1px solid var(--border);margin:18px 0;}
       <div class="chk-item on" data-id="bvlos-cert" onclick="toggleChk(this)"><div class="chk-box">✓</div><div class="chk-label">目視外飛行 限定解除</div></div>
     </div>
     <div class="card-title" style="margin-top:12px;">民間資格・その他</div>
+    <div class="law-alert-bar">
+      <span>⚠</span>
+      <span><strong>2025年12月18日 審査要領改正：</strong>JUIDA・DPA等の民間資格を活用した飛行許可申請の優遇措置が廃止されました。民間資格は今後の申請において簡略化の根拠として使用できません。<a href="https://www.mlit.go.jp/koku/koku_fr10_000042.html" target="_blank" rel="noopener">国交省 詳細 ↗</a></span>
+    </div>
     <div class="check-group">
       <div class="chk-item" data-id="juida"       onclick="toggleChk(this)"><div class="chk-box">✓</div><div class="chk-label">JUIDA 操縦技能証明</div></div>
       <div class="chk-item" data-id="dpa"         onclick="toggleChk(this)"><div class="chk-box">✓</div><div class="chk-label">DPA ドローン操縦士</div></div>
@@ -485,6 +525,47 @@ hr.div{border:none;border-top:1px solid var(--border);margin:18px 0;}
     <div>✅ DIPS ID・機体登録番号・保険証券番号は申請に便利ですが、センシティブ度が低いため記録しても問題ありません。</div>
   </div>
 </div>
+</div>
+
+<!-- 飛行記録 編集モーダル -->
+<div class="modal-overlay" id="log-edit-modal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <span class="modal-title">✏️ 飛行記録を編集</span>
+      <button class="modal-close" onclick="closeEditModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="edit-log-id">
+      <div class="field-row">
+        <div class="field"><label>飛行年月日 *</label><input type="date" id="edit-log-date"></div>
+        <div class="field"><label>離陸時刻 *</label><input type="time" id="edit-log-takeoff-time"></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>着陸時刻 *</label><input type="time" id="edit-log-landing-time"></div>
+        <div class="field"><label>飛行時間（分）*</label><input type="number" id="edit-log-duration" placeholder="例: 30" min="0"></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>離陸場所 *</label><input type="text" id="edit-log-from"></div>
+        <div class="field"><label>着陸場所 *</label><input type="text" id="edit-log-to"></div>
+      </div>
+      <div class="field"><label>飛行目的・経路概要 *</label><input type="text" id="edit-log-purpose"></div>
+      <div class="field"><label>飛行させた特定飛行の種別</label><input type="text" id="edit-log-special"></div>
+      <div class="field-row">
+        <div class="field"><label>製造後の総飛行時間</label><input type="text" id="edit-log-total-time"></div>
+        <div class="field"><label>安全に影響のあった事項</label>
+          <select id="edit-log-incident">
+            <option value="なし">なし</option>
+            <option value="あり">あり（備考欄に記載）</option>
+          </select>
+        </div>
+      </div>
+      <div class="field"><label>不具合・備考</label><textarea id="edit-log-note"></textarea></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-cancel" onclick="closeEditModal()">キャンセル</button>
+      <button class="btn-primary" onclick="saveEditLog()">💾 保存する</button>
+    </div>
+  </div>
 </div>
 
 <!-- ══════════ TAB: FLIGHT LOG ══════════ -->
@@ -560,8 +641,8 @@ hr.div{border:none;border-top:1px solid var(--border);margin:18px 0;}
 /* ============================================================
    CONSTANTS
 ============================================================ */
-const APP_VER   = '6.0.0';
-const APP_DATE  = '2025-05-23';
+const APP_VER   = '6.2.0';
+const APP_DATE  = '2026-05-25';
 const PILOT_KEY   = 'drone_pilot_v2';
 const HIST_KEY    = 'drone_history_v4';
 const PF_KEY      = 'drone_preflight_v1';
@@ -830,7 +911,7 @@ function initMap(){
       '<div style="font-weight:700;color:#38bdf8;margin-bottom:2px;font-size:10px;letter-spacing:.08em;">MAP LEGEND</div>'
       +'<div><span style="display:inline-block;width:14px;height:10px;background:rgba(251,146,60,0.5);border:1px solid #fb923c;border-radius:2px;margin-right:5px;vertical-align:middle;"></span>DID（人口集中地区）</div>'
       +'<div><span style="display:inline-block;width:14px;height:2px;background:#fbbf24;margin-right:5px;vertical-align:middle;"></span>空港 9km圏</div>'
-      +'<div><span style="display:inline-block;width:14px;height:2px;background:#f87171;margin-right:5px;vertical-align:middle;"></span>主要空港 300m圏</div>'
+      +'<div><span style="display:inline-block;width:14px;height:2px;background:#f87171;margin-right:5px;vertical-align:middle;"></span>主要空港 300m圏（⚠改正案で1km拡大予定）</div>'
       +'<div><span style="display:inline-block;width:10px;height:10px;background:#f87171;border-radius:50%;border:2px solid #fff;margin-right:5px;vertical-align:middle;"></span>飛行地点</div>';
     return div;
   };
@@ -1030,6 +1111,20 @@ function analyze(){
   const event=cv('event'),drop=cv('drop'),road=cv('road'),heavy=cv('heavy');
   const restricted=cv('restricted'),emergency=cv('emergency'),river=cv('river'),park=cv('park'),agri=cv('agri');
 
+  // 飛行場所の種別
+  const locPublic  =cv('loc-public');
+  const locPrivate =cv('loc-private');
+  const locTourism =cv('loc-tourism');
+  const locBeach   =cv('loc-beach');
+  const locPort    =cv('loc-port');
+  const locFarm    =cv('loc-farm');
+  const locForest  =cv('loc-forest');
+  const locHeritage=cv('loc-heritage');
+  const locSchool  =cv('loc-school');
+  const locSports  =cv('loc-sports');
+  const anyLoc = locPublic||locPrivate||locTourism||locBeach||locPort
+               ||locFarm||locForest||locHeritage||locSchool||locSports;
+
   const did=autoDID===true,inAP9k=nearestAP&&nearestAP.dist<=9000;
   const inMaj300=majorAP!==null;
   const alt=parseInt(document.getElementById('altitude').value)||0;
@@ -1067,13 +1162,26 @@ function analyze(){
   if(agri){reqs.push({t:'stop',key:'agri',title:'農薬散布：農水省ガイドライン＋DIPS2.0申請',detail:'農薬取締法に基づく適正使用が必要。市区町村農業委員会への事前届出と近隣農家への周知が必要。'});}
   if(road){reqs.push({t:'warn',key:'road',title:'道路使用：管轄警察署への道路使用許可申請',detail:'航空法の申請とは別に道路交通法に基づく申請が必要。許可まで1〜2週間。'});}
   if(heavy){reqs.push({t:'stop',key:'heavy',title:'25kg以上の機体：カテゴリーⅡA 個別許可申請',detail:'機体仕様書・整備記録・保険の加入証明等を添付すること。'});}
-  if(restricted){reqs.push({t:'stop',key:'restricted',title:'特定重要施設周辺：原則飛行禁止（小型無人機等飛行禁止法）',detail:'管轄警察・施設管理者への事前申請・通報が必要。許可されないケースが多い。'});}
+  if(restricted){reqs.push({t:'stop',key:'restricted',title:'特定重要施設周辺：原則飛行禁止（小型無人機等飛行禁止法）',detail:'現行は施設周辺おおむね300m圏内が禁止。⚠ 改正法案が2026年通常国会に提出済み・夏ごろ施行見込み：禁止エリアが1,000mに拡大予定。管轄警察・施設管理者への事前申請・通報が必要。許可されないケースが多い。'});}
   if(emergency){reqs.push({t:'stop',key:'emergency',title:'緊急用務空域：飛行禁止',detail:'国土交通大臣が指定した緊急用務空域。指定解除まで飛行不可。'});}
   if(river){reqs.push({t:'warn',key:'river',title:'河川・湖沼・海岸：管理者への事前確認',detail:'一級河川は国交省河川事務所、二級河川は都道府県、海上は海上保安部へ事前確認が必要。'});}
   if(park){reqs.push({t:'warn',key:'park',title:'公園・国立公園：公園管理者への許可申請',detail:'都市公園は各自治体公園管理事務所、国立公園は環境省または都道府県自然保護課へ。'});}
   if(!hasIns&&isSpecial){reqs.push({t:'warn',key:'ins',title:'第三者損害賠償保険：加入を強く推奨',detail:'申請時に加入状況の記載を求められる場合があります。'});}
   reqs.push({t:'ok',key:'notif',title:'飛行計画の通報（全飛行必須）',detail:'DIPS2.0で飛行計画を登録・通報。特定飛行の場合は飛行前日〜当日に通報を完了させること。'});
   reqs.push({t:'ok',key:'logbook',title:'飛行記録の作成・保存（全飛行必須）',detail:'飛行日時・場所・操縦者・機体番号・飛行時間・異常有無を毎回記録し一定期間保存すること。'});
+
+  // 飛行場所の種別ごとの確認事項
+  if(locPublic)   reqs.push({t:'warn',key:'loc-public',   title:'公有地・公共施設：土地管理者（市区町村）への使用許可申請',detail:'財産管理課・土木課・都市整備課など担当課が自治体により異なります。事前に役所に問い合わせて許可申請書を提出してください。'});
+  if(locPrivate)  reqs.push({t:'warn',key:'loc-private',  title:'私有地・民有地：土地所有者・建物管理者の承諾取得（民法）',detail:'書面（承諾書）での取得を推奨。飛行中の第三者通報に備え、承諾書を携帯してください。'});
+  if(locTourism)  reqs.push({t:'warn',key:'loc-tourism',  title:'観光地・景勝地：観光課・観光協会・施設管理者への許可申請',detail:'観光地独自の飛行禁止条例がある場合があります。観光課・観光協会・施設管理事務所に事前確認・許可申請が必要です。'});
+  if(locBeach)    reqs.push({t:'warn',key:'loc-beach',    title:'海水浴場・砂浜：海水浴場組合・漁業協同組合・海上保安署への確認',detail:'シーズン中は飛行禁止のケースが多い。自治体観光課・組合・海上保安部への事前連絡も推奨。漁業権設定海域では漁協確認も必要。'});
+  if(locPort)     reqs.push({t:'warn',key:'loc-port',     title:'港湾・漁港：港湾管理者・漁業協同組合への申請（港湾法・漁港漁場整備法）',detail:'港湾は都道府県・市区町村の港湾課へ、漁港は漁港管理者（市区町村）へ申請。船舶航行・荷役の妨げにならない飛行計画の提出が必要。'});
+  if(locFarm)     reqs.push({t:'warn',key:'loc-farm',     title:'農地・田畑：土地所有者（農家）の承諾取得（民法・農地法）',detail:'農作物への影響がないよう説明し、書面で承諾を取得することを推奨します。農業委員会への確認も有効です。'});
+  if(locForest)   reqs.push({t:'warn',key:'loc-forest',   title:'森林・林道・山岳：林野庁（森林管理署）または都道府県林務課への入林届・申請',detail:'国有林は管轄の森林管理署への入林届が必要。民有林は所有者・都道府県林務課に確認。自然公園法が適用される場合は別途申請も必要。'});
+  if(locHeritage) reqs.push({t:'warn',key:'loc-heritage', title:'文化財・史跡・神社仏閣：施設管理者・教育委員会文化財課への許可申請（文化財保護法）',detail:'国・都道府県・市区町村指定の文化財周辺は制限あり。神社仏閣は宗教法人への個別申請が必要。教育委員会文化財課にも確認してください。'});
+  if(locSchool)   reqs.push({t:'warn',key:'loc-school',   title:'学校・病院・官公庁：施設管理者・設置者への申請',detail:'学校は教育委員会経由が必要な場合あり。病院は患者プライバシーの観点から厳しく制限。官公庁は各施設の総務担当へ確認。'});
+  if(locSports)   reqs.push({t:'warn',key:'loc-sports',   title:'スポーツ施設・競技場：施設管理者・指定管理者への申請',detail:'公営施設は指定管理者への申請が必要。競技・イベント開催中は原則禁止。市区町村スポーツ振興課にも確認してください。'});
+  if(anyLoc)      reqs.push({t:'ok', key:'loc-police',    title:'管轄警察署への事前連絡（推奨）',detail:'法的義務ではありませんが、飛行前に管轄警察署（地域課・生活安全課）へ日時・場所・目的を連絡しておくと、第三者通報時のトラブルを防げます。'});
 
   /* 申請先一覧 — reqKeysでチェックリスト項目と紐付け */
   const city=currentCity||currentPref||'（飛行地）';
@@ -1091,6 +1199,160 @@ function analyze(){
   if(river){subs.push({reason:'河川・湖沼・海岸上空の飛行',law:'河川法 / 海岸法',to:'河川管理者（国交省河川事務所・都道府県）または海上保安庁',detail:'一級河川は国交省河川事務所、二級河川は都道府県担当課、海上は海上保安部へ。',deadline:'飛行前（早めに問い合わせ）',url:'https://www.mlit.go.jp/river/index.html',links:[sLink(city+' 河川事務所 電話番号',city+' 河川事務所'),sLink(city+' 海上保安部 電話番号','最寄り 海上保安部')],reqKeys:['river']});}
   if(park){subs.push({reason:'公園・自然公園内での飛行',law:'都市公園法 / 自然公園法',to:'公園管理者（各自治体）または環境省・都道府県',detail:'都市公園は各市区町村公園管理事務所へ。国立公園は環境省または都道府県自然保護課へ。',deadline:'飛行前（数週間かかる場合あり）',url:'https://www.env.go.jp/nature/np/intro.html',links:[sLink(city+' 公園管理事務所 ドローン 許可',city+' 公園管理事務所')],reqKeys:['park']});}
   if(agri){subs.push({reason:'農薬散布',law:'農薬取締法',to:'市区町村農業委員会・都道府県農業改良普及センター',detail:'農薬の適正使用義務あり。散布前に近隣農家・住民へ周知。',deadline:'散布前（余裕をもって）',url:'https://www.maff.go.jp/j/nouyaku/',links:[sLink(city+' 農業委員会 電話番号',city+' 農業委員会')],reqKeys:['agri']});}
+
+  // ── 飛行場所の種別ごとの申請先 ──
+
+  if(locPublic){
+    subs.push({
+      reason:'公有地・公共施設での飛行',
+      law:'各自治体条例・財産管理規則',
+      to:'市区町村役所の担当課（財産管理課・都市整備課・土木課など）',
+      detail:'公有地は自治体ごとに管理部署が異なります。土木課・建設課・都市計画課・財産管理課などに問い合わせ、使用許可申請が必要です。',
+      deadline:'飛行2〜4週間前（自治体により異なる）',
+      url:'https://www.j-lis.go.jp/',
+      links:[sLink(city+' 役所 土木課 ドローン 飛行 許可',city+' 役所 土木課'),
+             sLink(city+' 公有地 使用許可 申請',city+' 公有地 使用許可')],
+      reqKeys:[],
+    });
+  }
+
+  if(locPrivate){
+    subs.push({
+      reason:'私有地・民有地での飛行',
+      law:'民法 第206条（所有権の内容）',
+      to:'土地所有者・建物管理者（直接交渉）',
+      detail:'私有地の上空飛行は土地所有者の承諾が必要です。書面（承諾書）での取得を推奨。飛行中に第三者が警察へ通報する場合もあるため、承諾書を携帯してください。',
+      deadline:'飛行前（早めに交渉）',
+      url:'https://www.cfctoday.org/column/drone-regulation-application-commentary/',
+      links:[],
+      reqKeys:[],
+    });
+  }
+
+  if(locTourism){
+    subs.push({
+      reason:'観光地・景勝地での飛行',
+      law:'各自治体条例・観光振興条例',
+      to:'市区町村 観光課・観光協会・施設管理者',
+      detail:'観光地は独自の飛行禁止条例や規制を設けている場合が多いです。観光課・観光協会・施設管理事務所に事前確認・許可申請が必要です。',
+      deadline:'飛行2〜4週間前',
+      url:'https://www.mlit.go.jp/kankocho/',
+      links:[sLink(city+' 観光課 ドローン 飛行 許可 電話番号',city+' 観光課'),
+             sLink(city+' 観光協会 ドローン 問い合わせ',city+' 観光協会')],
+      reqKeys:[],
+    });
+  }
+
+  if(locBeach){
+    subs.push({
+      reason:'海水浴場・砂浜での飛行',
+      law:'海岸法・各自治体条例・海水浴場管理規則',
+      to:'市区町村 観光課または海水浴場組合・漁業協同組合・海上保安署',
+      detail:'海水浴場は自治体・組合が管理しています。シーズン中は飛行禁止のケースが多数。海上保安部への事前連絡も推奨。漁業権が設定された海域では漁協への確認も必要。',
+      deadline:'飛行1〜2週間前',
+      url:'https://www.kaiho.mlit.go.jp/',
+      links:[sLink(city+' 海水浴場 ドローン 飛行 許可 問い合わせ',city+' 海水浴場管理'),
+             sLink(city+' 漁業協同組合 電話番号',city+' 漁業協同組合'),
+             sLink(city+' 海上保安署 電話番号','最寄り 海上保安署')],
+      reqKeys:[],
+    });
+  }
+
+  if(locPort){
+    subs.push({
+      reason:'港湾・漁港での飛行',
+      law:'港湾法・漁港漁場整備法',
+      to:'港湾管理者（都道府県・市区町村港湾課）・漁港管理者・漁業協同組合',
+      detail:'港湾は国・都道府県・市区町村が管理者となります。漁港は漁港管理者（市区町村）への申請が必要。船舶の航行・荷役作業の妨げにならないよう飛行計画の提出が求められます。',
+      deadline:'飛行2〜3週間前',
+      url:'https://www.mlit.go.jp/kowan/index.html',
+      links:[sLink(city+' 港湾課 ドローン 飛行 電話番号',city+' 港湾課'),
+             sLink(city+' 漁港管理者 問い合わせ',city+' 漁港管理')],
+      reqKeys:[],
+    });
+  }
+
+  if(locFarm){
+    subs.push({
+      reason:'農地・田畑上空の飛行（農薬散布以外）',
+      law:'民法（土地所有権）・農地法',
+      to:'農地所有者（農家）・農業委員会',
+      detail:'農地は土地所有者（農家）の承諾が必要です。農作物への影響（農薬の誤散布・鳥獣の追い払い等）がないよう説明し、書面で承諾を取得することを推奨します。',
+      deadline:'飛行前（早めに交渉）',
+      url:'https://www.maff.go.jp/',
+      links:[sLink(city+' 農業委員会 電話番号',city+' 農業委員会')],
+      reqKeys:[],
+    });
+  }
+
+  if(locForest){
+    subs.push({
+      reason:'森林・林道・山岳地帯での飛行',
+      law:'森林法・国有林野の管理経営に関する法律',
+      to:'国有林：林野庁（森林管理署）／民有林：都道府県林務課・森林組合',
+      detail:'国有林は管轄の森林管理署への入林届が必要。民有林は所有者・都道府県林務課に確認。山岳地帯は自然公園法も適用される場合あり。',
+      deadline:'飛行1〜2週間前',
+      url:'https://www.rinya.maff.go.jp/',
+      links:[sLink(currentPref+' 森林管理署 電話番号',currentPref+' 森林管理署'),
+             sLink(currentPref+' 林務課 ドローン 飛行 問い合わせ',currentPref+' 林務課')],
+      reqKeys:[],
+    });
+  }
+
+  if(locHeritage){
+    subs.push({
+      reason:'文化財・史跡・神社仏閣での飛行',
+      law:'文化財保護法・各自治体条例',
+      to:'文化財管理者（宮司・住職・施設管理者）・市区町村教育委員会文化財課・文化庁',
+      detail:'国・都道府県・市区町村指定の文化財周辺は飛行が禁止または制限されています。神社仏閣は宗教法人が管理者であり、個別に許可申請が必要。教育委員会文化財課にも確認してください。',
+      deadline:'飛行2〜4週間前（神社仏閣は特に時間がかかる場合あり）',
+      url:'https://www.bunka.go.jp/',
+      links:[sLink(city+' 教育委員会 文化財課 電話番号',city+' 文化財課'),
+             sLink(city+' 文化財 ドローン 飛行 許可',city+' 文化財 ドローン許可')],
+      reqKeys:[],
+    });
+  }
+
+  if(locSchool){
+    subs.push({
+      reason:'学校・病院・官公庁施設での飛行',
+      law:'各施設管理規則・個人情報保護法',
+      to:'施設管理者（学校長・病院事務局・施設管理課）・設置者（教育委員会など）',
+      detail:'学校は教育委員会経由での申請が必要な場合があります。病院は患者のプライバシー保護の観点から厳しく制限されています。官公庁は各施設の庶務・総務担当へ確認。',
+      deadline:'飛行2〜4週間前',
+      url:'https://www.mext.go.jp/',
+      links:[sLink(city+' 教育委員会 ドローン 飛行 許可',city+' 教育委員会')],
+      reqKeys:[],
+    });
+  }
+
+  if(locSports){
+    subs.push({
+      reason:'スポーツ施設・競技場での飛行',
+      law:'各施設管理規則・興行法',
+      to:'施設管理者（施設事務局・指定管理者）・市区町村 スポーツ振興課',
+      detail:'公営のスポーツ施設は指定管理者制度で運営されていることが多く、指定管理者への申請が必要。民間施設は直接運営会社へ。競技・イベント開催中は原則禁止。',
+      deadline:'飛行2〜3週間前',
+      url:'https://www.mext.go.jp/sports/',
+      links:[sLink(city+' スポーツ振興課 ドローン 飛行 電話番号',city+' スポーツ振興課'),
+             sLink(city+' 体育館 競技場 ドローン 飛行 許可',city+' 競技場 ドローン許可')],
+      reqKeys:[],
+    });
+  }
+
+  // 地元警察への事前連絡（場所種別がある場合）
+  if(anyLoc){
+    subs.push({
+      reason:'飛行場所の事前連絡（トラブル防止）',
+      law:'任意（強制ではないが推奨）',
+      to:'管轄警察署（地域課・生活安全課）',
+      detail:'法的義務ではありませんが、飛行前に管轄警察署へ「いつ・どこで・何のために飛ばすか」を連絡しておくと、第三者からの通報があっても混乱を防げます。特に観光地・公共施設・人目につく場所での飛行時に推奨。',
+      deadline:'飛行前日〜当日',
+      url:'https://www.npa.go.jp/',
+      links:[sLink(city+' 警察署 地域課 電話番号',city+' 警察署 地域課')],
+      reqKeys:[],
+    });
+  }
 
   /* ── HTML生成 ── */
   const stopN = reqs.filter(r=>r.t==='stop').length;
@@ -1518,6 +1780,7 @@ let routeMode = false;
 let routePoints = [];       // [{lat,lon}]
 let routePolyline = null;
 let routeMarkers = [];
+let routeDIDFlags = [];     // true/false/null(判定中) — routePoints と 1:1対応
 
 function toggleRouteMode() {
   routeMode = !routeMode;
@@ -1530,9 +1793,38 @@ function toggleRouteMode() {
     : '地図をクリックして経由点を追加。ルート全体の空域が判定されます。';
 }
 
-function addRoutePoint(lat, lon) {
+/* DID判定を返すだけのヘルパー（DOM更新なし） */
+async function getDIDStatus(lat, lon) {
+  try {
+    const delta = 0.0005;
+    const minX = lon-delta, minY = lat-delta, maxX = lon+delta, maxY = lat+delta;
+    const wmsUrl = 'https://cyberjapandata.gsi.go.jp/wms?'
+      + 'SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&LAYERS=did2020&STYLES='
+      + '&CRS=EPSG:4326&BBOX='+minY+','+minX+','+maxY+','+maxX
+      + '&WIDTH=9&HEIGHT=9&FORMAT=image/png&TRANSPARENT=TRUE';
+    const img = new Image(); img.crossOrigin = 'anonymous';
+    await new Promise((res, rej) => { img.onload = res; img.onerror = rej; img.src = wmsUrl; });
+    const canvas = document.createElement('canvas'); canvas.width = 9; canvas.height = 9;
+    canvas.getContext('2d').drawImage(img, 0, 0);
+    const d = canvas.getContext('2d').getImageData(4, 4, 1, 1).data;
+    return d[3] > 10;
+  } catch(e) {
+    try {
+      const zoom = 13, n = Math.pow(2, zoom);
+      const tX = Math.floor((lon+180)/360*n);
+      const sinL = Math.sin(lat*Math.PI/180);
+      const tY = Math.floor((1-Math.log((1+sinL)/(1-sinL))/(2*Math.PI))/2*n);
+      const r = await fetch('https://cyberjapandata.gsi.go.jp/xyz/did2020/'+zoom+'/'+tX+'/'+tY+'.png', {method:'HEAD',mode:'cors'});
+      return r.ok;
+    } catch(e2) { return null; }
+  }
+}
+
+async function addRoutePoint(lat, lon) {
   if (!routeMode) return;
   routePoints.push({lat, lon});
+  routeDIDFlags.push(null); // DID判定待ち
+  const idx = routePoints.length - 1;
 
   // マーカー追加
   const icon = L.divIcon({
@@ -1552,10 +1844,14 @@ function addRoutePoint(lat, lon) {
     }).addTo(map);
   }
 
-  // 全経由点の距離・空域チェック
+  // 全経由点の距離・空域チェック（DID判定中状態で先に表示）
   updateRouteInfo();
   document.getElementById('route-info').textContent =
     '✏️ 地図をクリックして経由点を追加中... (' + routePoints.length + '点)';
+
+  // DID判定（非同期）—完了後に表示更新
+  routeDIDFlags[idx] = await getDIDStatus(lat, lon);
+  updateRouteInfo();
 }
 
 function updateRouteInfo() {
@@ -1579,12 +1875,20 @@ function updateRouteInfo() {
   if (minDist <= 300 && minAP?.major) apWarn = ' 🔴 '+ minAP.name+'300m圏内！';
   else if (minDist <= 9000) apWarn = ' ⚠ '+minAP.name+' '+apKm+'km（9km圏内）';
 
+  // DID判定結果を集計
+  const pendingCount = routeDIDFlags.filter(f => f === null).length;
+  const didCount     = routeDIDFlags.filter(f => f === true).length;
+  let didWarn = '';
+  if (pendingCount > 0)   didWarn = ' ⏳ DID判定中...';
+  else if (didCount > 0)  didWarn = ' ⚠ DID内経由点 ' + didCount + '点';
+
   document.getElementById('route-info').textContent =
-    '📏 ルート総距離: ' + km + 'km ｜ 経由点: ' + routePoints.length + '点' + apWarn;
+    '📏 ルート総距離: ' + km + 'km ｜ 経由点: ' + routePoints.length + '点' + apWarn + didWarn;
 }
 
 function clearRoute() {
   routePoints = [];
+  routeDIDFlags = [];
   routeMarkers.forEach(m => map.removeLayer(m));
   routeMarkers = [];
   if (routePolyline) { map.removeLayer(routePolyline); routePolyline = null; }
@@ -1610,6 +1914,12 @@ function addLogEntry() {
       alert('「' + document.getElementById(id).previousElementSibling.textContent.replace(' *','') + '」は必須項目です。');
       return;
     }
+  }
+  const takeoffVal = document.getElementById('log-takeoff-time').value;
+  const landingVal = document.getElementById('log-landing-time').value;
+  if (takeoffVal && landingVal && landingVal <= takeoffVal) {
+    alert('着陸時刻は離陸時刻より後に設定してください。');
+    return;
   }
   const entry = {
     id:          Date.now(),
@@ -1651,6 +1961,74 @@ function deleteLog(id) {
   renderLogList();
 }
 
+/* ── 編集モーダル ── */
+function openEditModal(id) {
+  const log = getLogs().find(e => e.id === id);
+  if (!log) return;
+  document.getElementById('edit-log-id').value           = id;
+  document.getElementById('edit-log-date').value         = log.date        || '';
+  document.getElementById('edit-log-takeoff-time').value = log.takeoffTime || '';
+  document.getElementById('edit-log-landing-time').value = log.landingTime || '';
+  document.getElementById('edit-log-duration').value     = log.duration    || '';
+  document.getElementById('edit-log-from').value         = log.from        || '';
+  document.getElementById('edit-log-to').value           = log.to          || '';
+  document.getElementById('edit-log-purpose').value      = log.purpose     || '';
+  document.getElementById('edit-log-special').value      = log.special     || '';
+  document.getElementById('edit-log-total-time').value   = log.totalTime   || '';
+  document.getElementById('edit-log-incident').value     = log.incident    || 'なし';
+  document.getElementById('edit-log-note').value         = log.note        || '';
+  document.getElementById('log-edit-modal').classList.add('open');
+}
+
+function closeEditModal() {
+  document.getElementById('log-edit-modal').classList.remove('open');
+}
+
+function saveEditLog() {
+  const id = parseInt(document.getElementById('edit-log-id').value);
+  const required = ['edit-log-date','edit-log-takeoff-time','edit-log-landing-time',
+                    'edit-log-duration','edit-log-from','edit-log-to','edit-log-purpose'];
+  for (const fid of required) {
+    if (!document.getElementById(fid).value.trim()) {
+      alert('必須項目を入力してください。');
+      return;
+    }
+  }
+  const editTakeoff = document.getElementById('edit-log-takeoff-time').value;
+  const editLanding = document.getElementById('edit-log-landing-time').value;
+  if (editTakeoff && editLanding && editLanding <= editTakeoff) {
+    alert('着陸時刻は離陸時刻より後に設定してください。');
+    return;
+  }
+  const logs = getLogs();
+  const idx  = logs.findIndex(e => e.id === id);
+  if (idx === -1) return;
+  // 元のパイロット・機体情報は保持し、入力値で上書き
+  logs[idx] = {
+    ...logs[idx],
+    date:        document.getElementById('edit-log-date').value,
+    takeoffTime: document.getElementById('edit-log-takeoff-time').value,
+    landingTime: document.getElementById('edit-log-landing-time').value,
+    duration:    parseInt(document.getElementById('edit-log-duration').value) || 0,
+    from:        document.getElementById('edit-log-from').value.trim(),
+    to:          document.getElementById('edit-log-to').value.trim(),
+    purpose:     document.getElementById('edit-log-purpose').value.trim(),
+    special:     document.getElementById('edit-log-special').value.trim(),
+    totalTime:   document.getElementById('edit-log-total-time').value.trim(),
+    incident:    document.getElementById('edit-log-incident').value,
+    note:        document.getElementById('edit-log-note').value.trim(),
+  };
+  saveLogs(logs);
+  closeEditModal();
+  renderLogList();
+}
+
+// モーダル外クリックで閉じる
+document.addEventListener('click', function(e) {
+  const modal = document.getElementById('log-edit-modal');
+  if (modal && e.target === modal) closeEditModal();
+});
+
 function renderLogList() {
   const el = document.getElementById('log-list');
   if (!el) return;
@@ -1664,7 +2042,10 @@ function renderLogList() {
     return '<div class="card" style="margin-bottom:10px;">'
       + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">'
       + '<span style="font-size:13px;font-weight:500;color:var(--accent);">'+esc(e.date)+'</span>'
+      + '<div style="display:flex;gap:6px;">'
+      + '<button onclick="openEditModal('+e.id+')" style="background:transparent;border:1px solid var(--border2);color:var(--accent);cursor:pointer;font-size:12px;border-radius:var(--r);padding:2px 10px;">✏️ 編集</button>'
       + '<button onclick="deleteLog('+e.id+')" style="background:transparent;border:none;color:var(--text3);cursor:pointer;font-size:12px;">🗑 削除</button>'
+      + '</div>'
       + '</div>'
       + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:12px;color:var(--text2);">'
       + logRow('操縦者', e.pilotName)
@@ -1930,10 +2311,35 @@ function resetAll(){
 /* ============================================================
    INIT
 ============================================================ */
+/* 離着陸時刻から飛行時間を自動計算するヘルパー */
+function autoCalcDuration(takeoffId, landingId, durationId) {
+  const takeoff = document.getElementById(takeoffId).value;
+  const landing = document.getElementById(landingId).value;
+  if (!takeoff || !landing) return;
+  const [th, tm] = takeoff.split(':').map(Number);
+  const [lh, lm] = landing.split(':').map(Number);
+  const diff = (lh * 60 + lm) - (th * 60 + tm);
+  if (diff > 0) document.getElementById(durationId).value = diff;
+}
+
 window.addEventListener('DOMContentLoaded',()=>{
   initMap();loadPilot();renderPilotSummary();renderPreflight();renderLogList();
   const today = new Date().toISOString().slice(0,10);
   document.getElementById('log-date').value = today;
+
+  // 飛行時間の自動計算（追加フォーム）
+  ['log-takeoff-time','log-landing-time'].forEach(id => {
+    document.getElementById(id).addEventListener('change', () =>
+      autoCalcDuration('log-takeoff-time','log-landing-time','log-duration')
+    );
+  });
+  // 飛行時間の自動計算（編集モーダル）
+  ['edit-log-takeoff-time','edit-log-landing-time'].forEach(id => {
+    document.getElementById(id).addEventListener('change', () =>
+      autoCalcDuration('edit-log-takeoff-time','edit-log-landing-time','edit-log-duration')
+    );
+  });
+
   // 起動時チェック（失敗しても動作に影響なし）
   checkLatestVersion();
   checkLawUpdate();
