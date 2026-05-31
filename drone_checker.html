@@ -29,9 +29,15 @@ html{scroll-behavior:smooth;}
 body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:14px;line-height:1.7;min-height:100vh;}
 
 /* ── TABS ── */
-.tab-bar{display:flex;background:var(--bg2);border-bottom:1px solid var(--border2);position:sticky;top:0;z-index:1000;}
-.tab-btn{flex:1;padding:12px 4px;font-size:12px;font-weight:500;font-family:var(--font);background:transparent;border:none;color:var(--text3);cursor:pointer;border-bottom:2px solid transparent;transition:all .18s;}
-.tab-btn.active{color:var(--accent);border-bottom-color:var(--accent);}
+.tab-bar{background:var(--bg2);border-bottom:2px solid var(--border2);position:sticky;top:0;z-index:1000;}
+.tab-row{display:flex;align-items:stretch;}
+.tab-row-1{border-bottom:1px solid var(--border);}
+.tab-row-label{padding:2px 8px;font-size:9px;font-weight:800;letter-spacing:.06em;font-family:var(--mono);white-space:nowrap;display:flex;align-items:center;justify-content:center;border-right:1px solid var(--border);flex-shrink:0;width:44px;line-height:1.25;text-align:center;}
+.tab-row-1 .tab-row-label{color:var(--accent);background:rgba(56,189,248,.06);}
+.tab-row-2 .tab-row-label{color:var(--amber);background:rgba(251,191,36,.05);}
+.tab-row-btns{display:flex;flex:1;}
+.tab-btn{flex:1;padding:9px 3px;font-size:11px;font-weight:500;font-family:var(--font);background:transparent;border:none;color:var(--text3);cursor:pointer;border-bottom:2px solid transparent;transition:all .18s;}
+.tab-btn.active{color:var(--accent);border-bottom-color:var(--accent);background:rgba(56,189,248,.04);}
 .tab-btn:hover:not(.active){color:var(--text2);}
 .tab-content{display:none;}
 .tab-content.active{display:block;animation:fadeIn .25s ease;}
@@ -259,16 +265,89 @@ hr.div{border:none;border-top:1px solid var(--border);margin:18px 0;}
 .law-alert-bar a:hover{text-decoration:underline;}
 .leaflet-tile{filter:brightness(0.65) saturate(0.75);}
 .custom-marker div{background:var(--red);width:14px;height:14px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 8px rgba(248,113,113,.7);}
+
+/* ── STEP GUIDE ── */
+.guide-wrap{background:var(--bg2);border:1px solid rgba(56,189,248,.25);border-radius:var(--rl);overflow:hidden;margin-bottom:14px;}
+.guide-head{padding:10px 16px;background:rgba(56,189,248,.06);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;}
+.guide-head-left{display:flex;align-items:center;gap:8px;}
+.guide-head-title{font-size:13px;font-weight:700;color:var(--accent);}
+.guide-head-sub{font-size:11px;color:var(--text3);}
+.guide-body{padding:12px 14px 14px;}
+.steps{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+@media(max-width:540px){.steps{grid-template-columns:1fr;}}
+.step{display:flex;align-items:flex-start;gap:9px;padding:8px 10px;border-radius:var(--r);border:1px solid var(--border);background:var(--bg3);}
+.step.s-done{background:rgba(34,211,161,.05);border-color:rgba(34,211,161,.25);}
+.step.s-now{background:rgba(56,189,248,.07);border-color:rgba(56,189,248,.35);}
+.step-n{width:22px;height:22px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;font-family:var(--mono);margin-top:1px;}
+.step.s-done .step-n{background:rgba(34,211,161,.2);color:var(--green);}
+.step.s-now .step-n{background:rgba(56,189,248,.2);color:var(--accent);}
+.step:not(.s-done):not(.s-now) .step-n{background:rgba(100,116,139,.12);color:var(--text3);}
+.step-body{flex:1;min-width:0;}
+.step-t{font-size:12px;font-weight:600;color:var(--text);line-height:1.3;}
+.step.s-done .step-t{color:var(--green);}
+.step.s-now .step-t{color:var(--accent);}
+.step-d{font-size:10px;color:var(--text3);margin-top:2px;line-height:1.4;}
+.step-a{display:inline-block;margin-top:4px;font-size:10px;color:var(--accent);background:transparent;border:none;cursor:pointer;font-family:var(--font);padding:0;text-decoration:none;}
+.step-a:hover{text-decoration:underline;}
+.guide-note{font-size:11px;color:var(--text3);margin-top:8px;padding-top:8px;border-top:1px solid var(--border);line-height:1.6;}
+
+/* ── SPOTS TAB ── */
+.spots-filter-bar{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;align-items:center;}
+.spots-select{background:var(--bg3);border:1px solid var(--border2);border-radius:var(--r);padding:7px 10px;color:var(--text);font-size:12px;font-family:var(--font);outline:none;min-width:130px;}
+.spots-select:focus{border-color:var(--accent);}
+.spots-select option{background:var(--bg3);}
+.fchips{display:flex;gap:5px;flex-wrap:wrap;}
+.fchip{padding:5px 10px;border-radius:20px;font-size:11px;font-weight:600;border:1px solid var(--border);background:transparent;color:var(--text3);cursor:pointer;transition:all .15s;font-family:var(--mono);}
+.fchip:hover{border-color:var(--border2);color:var(--text2);}
+.fchip.on{background:rgba(56,189,248,.12);border-color:var(--accent);color:var(--accent);}
+#spots-map{height:280px;width:100%;}
+.spot-count{font-size:11px;color:var(--text3);margin:8px 0 10px;font-family:var(--mono);}
+.spot-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(255px,1fr));gap:10px;margin-bottom:20px;}
+.spot-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--rl);padding:12px 14px;cursor:pointer;transition:border-color .15s,background .15s;}
+.spot-card:hover{border-color:var(--border2);background:rgba(56,189,248,0.04);}
+.spot-card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:6px;}
+.spot-name{font-size:13px;font-weight:600;color:var(--text);line-height:1.4;}
+.spot-pop{font-size:11px;color:var(--amber);letter-spacing:-1px;flex-shrink:0;}
+.spot-meta{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:6px;align-items:center;}
+.scat-tag{font-size:10px;padding:2px 8px;border-radius:20px;font-family:var(--mono);font-weight:700;}
+.scat-絶景{background:rgba(167,139,250,.12);color:var(--purple);border:1px solid rgba(167,139,250,.3);}
+.scat-海岸{background:rgba(96,165,250,.12);color:var(--blue);border:1px solid rgba(96,165,250,.3);}
+.scat-田園{background:rgba(34,211,161,.12);color:var(--green);border:1px solid rgba(34,211,161,.3);}
+.scat-歴史{background:rgba(251,191,36,.12);color:var(--amber);border:1px solid rgba(251,191,36,.3);}
+.sdiff-tag{font-size:10px;padding:2px 8px;border-radius:20px;font-family:var(--mono);}
+.sdiff-easy{background:rgba(34,211,161,.08);color:var(--green);border:1px solid rgba(34,211,161,.25);}
+.sdiff-medium{background:rgba(251,191,36,.08);color:var(--amber);border:1px solid rgba(251,191,36,.25);}
+.sdiff-hard{background:rgba(248,113,113,.08);color:var(--red);border:1px solid rgba(248,113,113,.25);}
+.spot-tags{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:7px;}
+.spot-tag{font-size:10px;padding:1px 7px;border-radius:20px;background:rgba(56,189,248,.06);border:1px solid rgba(56,189,248,.14);color:var(--text3);}
+.spot-note{font-size:11px;color:var(--text3);line-height:1.6;margin-bottom:8px;}
+.spot-use-btn{width:100%;padding:7px;font-size:12px;font-weight:600;font-family:var(--font);background:rgba(14,165,233,.12);border:1px solid rgba(14,165,233,.35);color:var(--accent);border-radius:var(--r);cursor:pointer;transition:opacity .15s;}
+.spot-use-btn:hover{opacity:.8;}
+.spots-empty{text-align:center;padding:40px;color:var(--text3);font-size:14px;}
+#spots-map .leaflet-popup-content-wrapper{background:#1a2236;border:1px solid rgba(56,189,248,0.3);color:#e2e8f0;box-shadow:0 4px 20px rgba(0,0,0,0.5);}
+#spots-map .leaflet-popup-tip{background:#1a2236;}
+#spots-map .leaflet-popup-content{margin:10px 14px;font-size:12px;line-height:1.6;}
 </style>
 </head>
 <body>
 
 <div class="tab-bar">
-  <button class="tab-btn active" onclick="switchTab('check',this)">🚁 飛行チェック</button>
-  <button class="tab-btn" onclick="switchTab('preflight',this)">✅ 飛行前確認</button>
-  <button class="tab-btn" onclick="switchTab('log',this)">📓 飛行記録</button>
-  <button class="tab-btn" onclick="switchTab('pilot',this)">🪪 パイロット情報</button>
-  <button class="tab-btn" onclick="switchTab('history',this)">📋 チェック履歴</button>
+  <div class="tab-row tab-row-1">
+    <div class="tab-row-label">申請<br>準備</div>
+    <div class="tab-row-btns">
+      <button class="tab-btn" onclick="switchTab('spots',this)">📍 スポット</button>
+      <button class="tab-btn active" onclick="switchTab('check',this)">🚁 飛行チェック</button>
+      <button class="tab-btn" onclick="switchTab('pilot',this)">🪪 パイロット情報</button>
+    </div>
+  </div>
+  <div class="tab-row tab-row-2">
+    <div class="tab-row-label">飛行<br>当日</div>
+    <div class="tab-row-btns">
+      <button class="tab-btn" onclick="switchTab('preflight',this)">✅ 飛行前確認</button>
+      <button class="tab-btn" onclick="switchTab('log',this)">📓 飛行記録</button>
+      <button class="tab-btn" onclick="switchTab('history',this)">📋 チェック履歴</button>
+    </div>
+  </div>
 </div>
 
 <!-- ══════════ TAB: CHECK ══════════ -->
@@ -283,7 +362,7 @@ hr.div{border:none;border-top:1px solid var(--border);margin:18px 0;}
   </div>
 
   <div class="ver-bar">
-    <span class="ver-txt">v6.0.0 &nbsp;|&nbsp; 法令基準: <strong>令和6年改正 航空法</strong> &nbsp;|&nbsp; 2025-05-23</span>
+    <span class="ver-txt">v6.2.0 &nbsp;|&nbsp; 法令基準: <strong>令和6年改正 航空法</strong> &nbsp;|&nbsp; 2026-05-25</span>
     <div style="display:flex;gap:8px;align-items:center;">
       <span id="update-status" style="font-size:11px;color:var(--text3);font-family:var(--mono);"></span>
       <a class="ver-link" href="https://www.mlit.go.jp/koku/koku_fr10_000042.html" target="_blank" rel="noopener">国土交通省 最新情報 ↗</a>
@@ -291,6 +370,24 @@ hr.div{border:none;border-top:1px solid var(--border);margin:18px 0;}
   </div>
 
   <div id="pilot-summary"></div>
+
+  <!-- ── 飛行許可取得 ステップガイド ── -->
+  <div class="guide-wrap">
+    <div class="guide-head" onclick="toggleGuide()">
+      <div class="guide-head-left">
+        <span class="guide-head-title">📋 飛行許可取得 ステップガイド</span>
+        <span class="guide-head-sub">許可までの全手順・使い方</span>
+      </div>
+      <span id="guide-arrow" style="font-size:11px;color:var(--text3);">▲ 閉じる</span>
+    </div>
+    <div class="guide-body" id="guide-body">
+      <div class="steps" id="guide-steps"><!-- JS で動的生成 --></div>
+      <div class="guide-note">
+        ※ カテゴリーⅠ（特定飛行に非該当）の場合は<strong>申請不要</strong>です。STEP4の判定結果で確認できます。<br>
+        ※ 申請が必要な場合は<strong>飛行30日前まで</strong>にDIPS2.0への申請完了を目標にしてください。
+      </div>
+    </div>
+  </div>
 
   <div class="slabel">📖 飛行カテゴリー早見表</div>
   <div class="cat-legend">
@@ -341,7 +438,7 @@ hr.div{border:none;border-top:1px solid var(--border);margin:18px 0;}
     <div class="field-row">
       <div class="field">
         <label>飛行予定高度（m）※ 150m以上は自動検知</label>
-        <input type="number" id="altitude" placeholder="例: 50" min="0" max="999">
+        <input type="number" id="altitude" placeholder="例: 50" min="0" max="999" oninput="updateStepGuide()">
       </div>
       <div class="field">
         <label>飛行目的</label>
@@ -360,7 +457,7 @@ hr.div{border:none;border-top:1px solid var(--border);margin:18px 0;}
     </div>
     <div class="field">
       <label>飛行予定日時</label>
-      <input type="datetime-local" id="flight-date">
+      <input type="datetime-local" id="flight-date" oninput="onFlightDateChange()">
     </div>
     <div class="field">
       <label>メモ・備考</label>
@@ -369,7 +466,10 @@ hr.div{border:none;border-top:1px solid var(--border);margin:18px 0;}
   </div>
 
   <div class="slabel">🏞 飛行場所の種別（土地管理者への確認が必要な場所）</div>
-  <div class="card">
+  <div class="card" id="loc-type-card">
+    <div id="loc-hint" style="display:none;background:rgba(56,189,248,.08);border:1px solid rgba(56,189,248,.3);border-radius:6px;padding:7px 11px;margin-bottom:10px;font-size:12px;color:var(--accent);">
+      📌 スポット情報をもとに種別を自動選択しました。内容を確認・修正してください。
+    </div>
     <div class="card-title">飛行する場所の種別をすべて選択（航空法とは別に管理者への確認・許可が必要です）</div>
     <div class="check-group">
       <div class="chk-item" data-id="loc-public"   onclick="toggleChk(this)"><div class="chk-box">✓</div><div class="chk-label">公有地・公共施設<span class="chk-sub">市区町村・都道府県が管理する土地・建物</span></div><span class="cat-tag ct-2b">管理者</span></div>
@@ -634,6 +734,52 @@ hr.div{border:none;border-top:1px solid var(--border);margin:18px 0;}
   <div class="slabel">📋 チェック履歴（直近10件）</div>
   <div id="history-list"></div>
   <button class="reset-btn" onclick="clearHistory()" style="margin-top:10px;">🗑 履歴を全削除</button>
+</div>
+</div>
+
+<!-- ══════════ TAB: SPOTS ══════════ -->
+<div id="tab-spots" class="tab-content">
+<div class="container">
+  <div class="slabel">📍 おすすめドローン撮影スポット</div>
+
+  <div class="card" style="margin-bottom:12px;">
+    <div style="font-size:12px;color:var(--text2);line-height:1.8;">
+      全国47都道府県の人気ドローンスポットを収録。実際に多くのパイロットが訪れている場所を中心に掲載しています。<br>
+      申請難易度：<span class="sdiff-tag sdiff-easy" style="margin:0 3px;">✓ 比較的容易</span>申請なしで飛べる可能性が高い ／
+      <span class="sdiff-tag sdiff-medium" style="margin:0 3px;">△ 要確認</span>申請・許可が必要な場合あり ／
+      <span class="sdiff-tag sdiff-hard" style="margin:0 3px;">✕ 困難</span>禁止・高難度申請が必要<br>
+      <span style="color:var(--red);font-size:11px;">※ 必ず現地の最新情報を確認し、法令を遵守した上で飛行してください。</span>
+    </div>
+  </div>
+
+  <!-- フィルター -->
+  <div class="spots-filter-bar">
+    <select class="spots-select" id="spots-pref-select" onchange="filterSpots()">
+      <option value="">🗾 都道府県: すべて</option>
+    </select>
+    <div class="fchips" id="spots-cat-chips">
+      <button class="fchip on" onclick="setCatFilter('',this)">すべて</button>
+      <button class="fchip" onclick="setCatFilter('絶景',this)">🌄 絶景</button>
+      <button class="fchip" onclick="setCatFilter('海岸',this)">🌊 海岸</button>
+      <button class="fchip" onclick="setCatFilter('田園',this)">🌾 田園</button>
+      <button class="fchip" onclick="setCatFilter('歴史',this)">🏛 歴史</button>
+    </div>
+    <div class="fchips" id="spots-diff-chips">
+      <button class="fchip on" onclick="setDiffFilter('',this)">難易度: すべて</button>
+      <button class="fchip" onclick="setDiffFilter('easy',this)">✓ 容易</button>
+      <button class="fchip" onclick="setDiffFilter('medium',this)">△ 要確認</button>
+      <button class="fchip" onclick="setDiffFilter('hard',this)">✕ 困難</button>
+    </div>
+  </div>
+
+  <!-- 地図 -->
+  <div class="map-wrap" style="margin-bottom:10px;">
+    <div id="spots-map"></div>
+  </div>
+
+  <!-- スポット一覧 -->
+  <div id="spots-count" class="spot-count"></div>
+  <div id="spots-grid" class="spot-grid"></div>
 </div>
 </div>
 
@@ -970,6 +1116,7 @@ function setLocation(lat,lon){
   checkDID(lat,lon);
   checkAirports(lat,lon);
   fetchWeather(lat,lon);
+  updateStepGuide();
 }
 
 /* ============================================================
@@ -1515,6 +1662,7 @@ function analyze(){
   document.getElementById('result-inner').innerHTML=html;
   document.getElementById('result-area').style.display='block';
   setTimeout(()=>document.getElementById('result-area').scrollIntoView({behavior:'smooth',block:'start'}),60);
+  updateStepGuide();
 
   const condList=['night','bvlos','close','crowd','event','drop','road','heavy','restricted','emergency','river','park','agri'].filter(cv).join(', ')||'なし';
   saveHistory({date:new Date().toLocaleString('ja-JP'),address,catKey,catLabel,stopN,warnN,airport:nearestAP?nearestAP.name:'—',conds:condList});
@@ -1528,7 +1676,6 @@ function copyDraft(){
   if(!body)return;
   const rows=body.querySelectorAll('.draft-row');
   let text='【DIPS2.0 申請書 下書き】\n\n';
-  let section='';
   body.querySelectorAll('.draft-section').forEach(sec=>{
     const title=sec.querySelector('.draft-section-title');
     if(title)text+='\n'+title.textContent+'\n';
@@ -1688,42 +1835,87 @@ function clearHistory(){if(confirm('履歴をすべて削除しますか？')){l
 async function fetchWeather(lat, lon) {
   const card = document.getElementById('weather-card');
   const body = document.getElementById('weather-body');
+  const titleEl = card.querySelector('.card-title');
   card.style.display = 'block';
-  body.textContent = '🌤 気象情報を取得中...';
+
+  // 飛行予定日時を読み取り — datetime-local 値: 'YYYY-MM-DDTHH:MM'
+  const fdStr = document.getElementById('flight-date').value;
+  let useHourly = false;
+  let fdDateStr = '', targetHour = 0, fdLabel = '';
+
+  if (fdStr) {
+    fdDateStr  = fdStr.slice(0, 10);              // 'YYYY-MM-DD'
+    targetHour = parseInt(fdStr.slice(11, 13));   // 0-23
+    fdLabel    = fdStr.slice(0,10).replace(/-/g,'/') + ' ' + fdStr.slice(11,16);
+    const diffMs = new Date(fdStr) - new Date();
+    useHourly  = diffMs >= -3600000 && diffMs / 86400000 <= 15.5; // 1時間前〜15.5日後
+  }
+
+  if (useHourly) {
+    titleEl.textContent = '🗓 飛行予定日時の天気予報（' + fdLabel + '）';
+    body.textContent = '📡 天気予報を取得中...';
+  } else {
+    titleEl.textContent = '🌤 飛行地点の現在の気象情報（Open-Meteo）';
+    body.textContent = '🌤 気象情報を取得中...';
+  }
+
+  const wcMap = {
+    0:'快晴',1:'晴れ',2:'一部曇り',3:'曇り',
+    45:'霧',48:'着氷性の霧',51:'小雨',53:'中程度の雨',55:'強い雨',
+    61:'弱い雨',63:'中程度の雨',65:'強い雨',
+    71:'弱い雪',73:'中程度の雪',75:'強い雪',
+    80:'にわか雨',81:'やや強いにわか雨',82:'激しいにわか雨',
+    95:'雷雨',96:'ひょうを伴う雷雨',99:'強いひょうを伴う雷雨',
+  };
+  const dirs = ['北','北北東','北東','東北東','東','東南東','南東','南南東','南','南南西','南西','西南西','西','西北西','北西','北北西'];
+
   try {
-    const url = 'https://api.open-meteo.com/v1/forecast'
-      + '?latitude=' + lat.toFixed(4)
-      + '&longitude=' + lon.toFixed(4)
-      + '&current=temperature_2m,relative_humidity_2m,weather_code,'
-      + 'wind_speed_10m,wind_direction_10m,wind_gusts_10m,visibility'
-      + '&hourly=wind_speed_10m,wind_gusts_10m'
-      + '&forecast_days=1'
-      + '&timezone=Asia%2FTokyo'
-      + '&wind_speed_unit=ms';
-    const res = await fetch(url);
-    if (!res.ok) throw new Error();
-    const d = await res.json();
-    const c = d.current;
+    let windSpeed, windGust, temp, humidity, visibility, wcode, windDirDeg;
 
-    const windSpeed  = c.wind_speed_10m;
-    const windGust   = c.wind_gusts_10m;
-    const temp       = c.temperature_2m;
-    const humidity   = c.relative_humidity_2m;
-    const visibility = c.visibility;
-    const wcode      = c.weather_code;
+    if (useHourly) {
+      // 飛行予定日の時間帯ごとの予報を取得
+      const url = 'https://api.open-meteo.com/v1/forecast'
+        + '?latitude=' + lat.toFixed(4) + '&longitude=' + lon.toFixed(4)
+        + '&hourly=temperature_2m,relative_humidity_2m,weather_code,'
+        + 'wind_speed_10m,wind_direction_10m,wind_gusts_10m,visibility'
+        + '&start_date=' + fdDateStr + '&end_date=' + fdDateStr
+        + '&timezone=Asia%2FTokyo&wind_speed_unit=ms';
+      const res = await fetch(url);
+      if (!res.ok) throw new Error();
+      const d = await res.json();
+      const h = d.hourly;
+      const idx = h.time.findIndex(t => parseInt(t.slice(11,13)) === targetHour);
+      const i = idx === -1 ? 0 : idx;
+      windSpeed  = h.wind_speed_10m[i];
+      windGust   = h.wind_gusts_10m[i];
+      temp       = h.temperature_2m[i];
+      humidity   = h.relative_humidity_2m[i];
+      visibility = h.visibility[i];
+      wcode      = h.weather_code[i];
+      windDirDeg = h.wind_direction_10m[i];
+    } else {
+      // 現在の気象（日時未設定・範囲外）
+      const url = 'https://api.open-meteo.com/v1/forecast'
+        + '?latitude=' + lat.toFixed(4) + '&longitude=' + lon.toFixed(4)
+        + '&current=temperature_2m,relative_humidity_2m,weather_code,'
+        + 'wind_speed_10m,wind_direction_10m,wind_gusts_10m,visibility'
+        + '&forecast_days=1&timezone=Asia%2FTokyo&wind_speed_unit=ms';
+      const res = await fetch(url);
+      if (!res.ok) throw new Error();
+      const d = await res.json();
+      const c = d.current;
+      windSpeed  = c.wind_speed_10m;
+      windGust   = c.wind_gusts_10m;
+      temp       = c.temperature_2m;
+      humidity   = c.relative_humidity_2m;
+      visibility = c.visibility;
+      wcode      = c.weather_code;
+      windDirDeg = c.wind_direction_10m;
+    }
 
-    // 気象コード → 日本語
-    const wcMap = {
-      0:'快晴',1:'晴れ',2:'一部曇り',3:'曇り',
-      45:'霧',48:'着氷性の霧',51:'小雨',53:'中程度の雨',55:'強い雨',
-      61:'弱い雨',63:'中程度の雨',65:'強い雨',
-      71:'弱い雪',73:'中程度の雪',75:'強い雪',
-      80:'にわか雨',81:'やや強いにわか雨',82:'激しいにわか雨',
-      95:'雷雨',96:'ひょうを伴う雷雨',99:'強いひょうを伴う雷雨',
-    };
-    const wLabel = wcMap[wcode] || '不明（コード:'+wcode+')';
+    const wLabel  = wcMap[wcode] || '不明（コード:'+wcode+')';
+    const windDir = dirs[Math.round(windDirDeg / 22.5) % 16];
 
-    // 飛行可否の判定
     const warnings = [];
     if (windSpeed > 10) warnings.push({msg:'風速'+windSpeed.toFixed(1)+'m/s — 強風注意（10m/s超）', level:'stop'});
     else if (windSpeed > 5) warnings.push({msg:'風速'+windSpeed.toFixed(1)+'m/s — 注意（5m/s超）', level:'warn'});
@@ -1732,10 +1924,6 @@ async function fetchWeather(lat, lon) {
       warnings.push({msg:'悪天候（'+wLabel+'）— 飛行注意', level:'warn'});
     if (visibility && visibility < 1000)
       warnings.push({msg:'視程'+Math.round(visibility)+'m — 視程不良注意', level:'stop'});
-
-    // 風向
-    const dirs=['北','北北東','北東','東北東','東','東南東','南東','南南東','南','南南西','南西','西南西','西','西北西','北西','北北西'];
-    const windDir = dirs[Math.round(c.wind_direction_10m / 22.5) % 16];
 
     const okColor = windSpeed <= 5 ? 'var(--green)' : windSpeed <= 10 ? 'var(--amber)' : 'var(--red)';
     const flightJudge = warnings.some(w=>w.level==='stop')
@@ -1746,9 +1934,22 @@ async function fetchWeather(lat, lon) {
 
     let warnHtml = '';
     warnings.forEach(w => {
-      const col = w.level === 'stop' ? 'var(--red)' : 'var(--amber)';
-      warnHtml += '<div style="color:'+col+';font-size:12px;margin-top:4px;">⚠ '+esc(w.msg)+'</div>';
+      warnHtml += '<div style="color:'+(w.level==='stop'?'var(--red)':'var(--amber)')+';font-size:12px;margin-top:4px;">⚠ '+esc(w.msg)+'</div>';
     });
+
+    // 日時が範囲外の場合の補足メッセージ
+    let extraNote = '';
+    if (fdStr && !useHourly) {
+      const diffMs = new Date(fdStr) - new Date();
+      extraNote = diffMs < 0
+        ? '<div style="color:var(--amber);font-size:11px;margin-top:6px;">⚠ 飛行予定日が過去の日時のため、現在の天気を表示しています。</div>'
+        : '<div style="color:var(--amber);font-size:11px;margin-top:6px;">⚠ 飛行予定日まで16日以上あるため現在の天気を表示しています。直前に再確認してください。</div>';
+    }
+
+    const dataNote = useHourly
+      ? 'データ: <a href="https://open-meteo.com" target="_blank" rel="noopener" style="color:var(--accent);">Open-Meteo</a> | '
+        + esc(fdLabel) + ' の予報値。実際の天気は<strong>飛行直前に再確認</strong>してください。'
+      : 'データ: <a href="https://open-meteo.com" target="_blank" rel="noopener" style="color:var(--accent);">Open-Meteo</a> | 現在時刻付近の予報値。必ず現地で気象を確認してください。';
 
     body.innerHTML =
       '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin-bottom:10px;">'
@@ -1761,7 +1962,8 @@ async function fetchWeather(lat, lon) {
       + '</div>'
       + '<div style="margin-bottom:6px;">飛行判定: '+flightJudge+'</div>'
       + warnHtml
-      + '<div style="font-size:11px;color:var(--text3);margin-top:8px;">データ: <a href="https://open-meteo.com" target="_blank" rel="noopener" style="color:var(--accent);">Open-Meteo</a> | 現在時刻付近の予報値。必ず現地で気象を確認してください。</div>';
+      + extraNote
+      + '<div style="font-size:11px;color:var(--text3);margin-top:8px;">'+dataNote+'</div>';
   } catch(e) {
     body.innerHTML = '<span style="color:var(--text3);">気象情報の取得に失敗しました。インターネット接続を確認してください。</span>';
   }
@@ -2056,17 +2258,17 @@ function renderLogList() {
       + logRow('総飛行時間', e.totalTime || '—')
       + logRow('目的・経路', e.purpose)
       + logRow('特定飛行', e.special || 'なし')
-      + logRow('安全影響事項', '<span style="color:'+incColor+';">'+esc(e.incident)+'</span>')
+      + logRow('安全影響事項', '<span style="color:'+incColor+';">'+esc(e.incident)+'</span>', true)
       + (e.note ? logRow('備考', e.note) : '')
       + '</div>'
       + '</div>';
   }).join('');
 }
 
-function logRow(key, val) {
+function logRow(key, val, rawHtml) {
   return '<div style="background:var(--bg3);border-radius:4px;padding:5px 8px;">'
     + '<div style="font-size:10px;color:var(--text3);">'+esc(key)+'</div>'
-    + '<div style="color:var(--text);">'+esc(String(val||''))+'</div>'
+    + '<div style="color:var(--text);">'+(rawHtml ? val : esc(String(val||'')))+'</div>'
     + '</div>';
 }
 
@@ -2285,6 +2487,7 @@ function switchTab(id, btn) {
   if (id === 'history')  renderHistory();
   if (id === 'log')      renderLogList();
   if (id === 'check')    setTimeout(() => map && map.invalidateSize(), 100);
+  if (id === 'spots')    setTimeout(() => initSpotsTab(), 100);
 }
 
 /* ============================================================
@@ -2324,6 +2527,14 @@ function autoCalcDuration(takeoffId, landingId, durationId) {
 
 window.addEventListener('DOMContentLoaded',()=>{
   initMap();loadPilot();renderPilotSummary();renderPreflight();renderLogList();
+  updateStepGuide();
+  // ガイドの開閉状態を復元
+  try {
+    if (localStorage.getItem('drone_guide_open') === '0') {
+      document.getElementById('guide-body').style.display = 'none';
+      document.getElementById('guide-arrow').textContent = '▼ 開く';
+    }
+  } catch(e){}
   const today = new Date().toISOString().slice(0,10);
   document.getElementById('log-date').value = today;
 
@@ -2344,6 +2555,452 @@ window.addEventListener('DOMContentLoaded',()=>{
   checkLatestVersion();
   checkLawUpdate();
 });
+
+/* ============================================================
+   STEP GUIDE — 飛行許可取得ステップガイド
+============================================================ */
+function goToTab(id) {
+  const btn = document.querySelector(".tab-btn[onclick*=\"'" + id + "'\"]");
+  if (btn) switchTab(id, btn);
+}
+
+function onFlightDateChange() {
+  if (geoLat !== null) fetchWeather(geoLat, geoLon);
+  updateStepGuide();
+}
+
+function toggleGuide() {
+  const body = document.getElementById('guide-body');
+  const arrow = document.getElementById('guide-arrow');
+  const isOpen = body.style.display !== 'none';
+  body.style.display = isOpen ? 'none' : 'block';
+  arrow.textContent = isOpen ? '▼ 開く' : '▲ 閉じる';
+  try { localStorage.setItem('drone_guide_open', isOpen ? '0' : '1'); } catch(e){}
+}
+
+function updateStepGuide() {
+  const el = document.getElementById('guide-steps');
+  if (!el) return;
+  const hasPilot = !!localStorage.getItem(PILOT_KEY);
+  const hasLoc   = geoLat !== null;
+  const fdVal    = document.getElementById('flight-date')?.value || '';
+  const altVal   = document.getElementById('altitude')?.value || '';
+  const hasCond  = !!(fdVal && altVal);
+  const resultEl = document.getElementById('result-area');
+  const hasResult = resultEl && resultEl.style.display !== 'none';
+  let logCount = 0;
+  try { logCount = JSON.parse(localStorage.getItem(LOG_KEY) || '[]').length; } catch(e){}
+
+  const STEPS = [
+    {num:1, icon:'🪪', title:'パイロット情報を登録',
+     desc:'資格・保険・機体情報を登録するとチェック精度が向上します',
+     done:hasPilot, action:"goToTab('pilot')", label:'パイロット情報タブへ →'},
+    {num:2, icon:'📍', title:'飛行場所を地図で指定',
+     desc:'住所入力またはマップクリックでDID・空港圏を自動判定します',
+     done:hasLoc, action:null, label:null},
+    {num:3, icon:'✈', title:'飛行条件・予定日時を入力',
+     desc:'高度・飛行目的・予定日時・飛行種別（夜間・目視外など）を設定',
+     done:hasCond, action:null, label:null},
+    {num:4, icon:'🔍', title:'飛行チェックを実行',
+     desc:'「必要な手続きを判定する」ボタンを押してカテゴリーを確認',
+     done:hasResult,
+     action:"document.querySelector('.analyze-btn')?.scrollIntoView({behavior:'smooth'})",
+     label:'判定ボタンへ →'},
+    {num:5, icon:'📝', title:'申請先と必要書類を確認',
+     desc:'カテゴリーⅠなら申請不要。ⅡA/ⅡB/Ⅲは申請先リストを確認',
+     done:hasResult,
+     action:"document.getElementById('result-area')?.scrollIntoView({behavior:'smooth'})",
+     label:'判定結果へ →'},
+    {num:6, icon:'💻', title:'DIPS2.0で申請（飛行30日前〜）',
+     desc:'飛行10日前を目安に国土交通省ポータルへ申請。承認まで数日〜2週間',
+     done:false, href:'https://dips2.mlit.go.jp/', label:'DIPS2.0を開く ↗'},
+    {num:7, icon:'✅', title:'飛行前チェックリストを確認',
+     desc:'出発前に機体・電池・天気・許可証の状態を確認',
+     done:false, action:"goToTab('preflight')", label:'飛行前確認タブへ →'},
+    {num:8, icon:'📓', title:'飛行日誌を記録（航空法上の義務）',
+     desc:'飛行ごとに記録してExcel/CSVでエクスポートできます',
+     done:logCount > 0, action:"goToTab('log')", label:'飛行記録タブへ →'},
+  ];
+
+  const currentIdx = STEPS.findIndex(s => !s.done);
+  el.innerHTML = STEPS.map((s, i) => {
+    const cls = s.done ? 's-done' : i === currentIdx ? 's-now' : '';
+    const nLabel = s.done ? '✓' : String(s.num);
+    let aHtml = '';
+    if (s.href) {
+      aHtml = '<a href="' + esc(s.href) + '" target="_blank" rel="noopener" class="step-a">' + esc(s.label) + '</a>';
+    } else if (s.action && s.label) {
+      aHtml = '<button class="step-a" onclick="' + s.action + '">' + esc(s.label) + '</button>';
+    }
+    return '<div class="step ' + cls + '">'
+      + '<div class="step-n">' + nLabel + '</div>'
+      + '<div class="step-body">'
+      + '<div class="step-t">' + s.icon + ' ' + esc(s.title) + '</div>'
+      + '<div class="step-d">' + esc(s.desc) + '</div>'
+      + aHtml + '</div></div>';
+  }).join('');
+}
+
+/* ============================================================
+   SPOTS TAB — おすすめドローン撮影スポット
+============================================================ */
+const SPOTS = [
+  // 北海道
+  {id:1,name:'美瑛の丘（パッチワークの路）',pref:'北海道',pc:1,lat:43.592,lng:142.479,cat:'田園',tag:['丘','農村','四季'],pop:5,diff:'easy',note:'農道周辺の私有地が多いため農地に入らず公道・指定ビューポイントから撮影を推奨。'},
+  {id:2,name:'富良野ラベンダー畑周辺',pref:'北海道',pc:1,lat:43.454,lng:142.380,cat:'田園',tag:['ラベンダー','花畑'],pop:4,diff:'hard',note:'ファーム富田敷地内は撮影禁止。周辺の公道・農道から高度を下げての撮影が一般的。'},
+  {id:3,name:'知床・宇登呂周辺',pref:'北海道',pc:1,lat:44.072,lng:145.042,cat:'絶景',tag:['世界遺産','断崖'],pop:5,diff:'hard',note:'世界遺産・知床国立公園内。特別保護地区に該当する可能性が高い。環境省へ事前確認必須。'},
+  // 青森
+  {id:4,name:'龍飛崎',pref:'青森県',pc:2,lat:41.249,lng:140.314,cat:'海岸',tag:['岬','断崖','夕日'],pop:4,diff:'easy',note:'津軽海峡越しに北海道が見える絶景岬。近くに電波施設あり。強風が多いため低温・強風対策を。'},
+  {id:5,name:'十和田湖',pref:'青森県',pc:2,lat:40.469,lng:140.874,cat:'絶景',tag:['湖','紅葉','国立公園'],pop:4,diff:'hard',note:'十和田八幡平国立公園内。湖畔の一部エリアで許可を得て飛行できるケースあり。事前確認必須。'},
+  // 岩手
+  {id:6,name:'浄土ヶ浜',pref:'岩手県',pc:3,lat:39.363,lng:141.955,cat:'海岸',tag:['岩礁','青い海'],pop:4,diff:'medium',note:'三陸復興国立公園内。白い流紋岩と透明度の高い海が美しい。観光シーズンは人が多いため早朝推奨。'},
+  {id:7,name:'厳美渓',pref:'岩手県',pc:3,lat:38.977,lng:141.078,cat:'絶景',tag:['渓谷','紅葉'],pop:3,diff:'medium',note:'渓谷沿いは低空飛行に注意。観光客が多い時期は第三者上空飛行の規制に留意。'},
+  // 宮城
+  {id:8,name:'気仙沼大島（亀山展望台）',pref:'宮城県',pc:4,lat:38.882,lng:141.579,cat:'絶景',tag:['島','展望台'],pop:3,diff:'easy',note:'大橋開通後アクセスが向上。山頂展望台周辺から360°の絶景が望める。フェリー利用者は減少。'},
+  {id:9,name:'蔵王御釜',pref:'宮城県',pc:4,lat:38.133,lng:140.443,cat:'絶景',tag:['火山湖','山岳','紅葉'],pop:5,diff:'hard',note:'蔵王国定公園内で火口湖。特別地域に該当の可能性あり。エメラルドグリーンの湖面が人気。'},
+  // 秋田
+  {id:10,name:'田沢湖',pref:'秋田県',pc:5,lat:39.702,lng:140.659,cat:'絶景',tag:['湖','深い青'],pop:4,diff:'easy',note:'日本一深い湖（423m）。湖岸の公道・駐車場周辺から飛行しやすい。夕日の撮影スポットとして人気。'},
+  {id:11,name:'男鹿半島・入道崎',pref:'秋田県',pc:5,lat:39.966,lng:139.706,cat:'海岸',tag:['岬','灯台','夕日'],pop:4,diff:'easy',note:'黒白の灯台と日本海の夕日が絵になる。DID外で比較的飛ばしやすい。地吹雪の冬季は飛行不可。'},
+  // 山形
+  {id:12,name:'蔵王の樹氷',pref:'山形県',pc:6,lat:38.158,lng:140.459,cat:'絶景',tag:['冬景色','樹氷','山岳'],pop:5,diff:'medium',note:'冬季ロープウェイ周辺が人気。スキー場エリアは施設管理者の許可が必要。強風・低温対策必須。'},
+  {id:13,name:'最上川舟下り・戸沢村',pref:'山形県',pc:6,lat:38.812,lng:140.249,cat:'絶景',tag:['川','紅葉','渓谷'],pop:3,diff:'easy',note:'最上川下り舟が有名な渓谷。川沿いの公道から撮影可能なスポットあり。秋の紅葉が格別。'},
+  // 福島
+  {id:14,name:'猪苗代湖',pref:'福島県',pc:7,lat:37.449,lng:140.099,cat:'絶景',tag:['湖','広大'],pop:4,diff:'easy',note:'日本第4位の大きさの湖。湖岸の農村エリアから広大な眺めが撮影可能。磐梯山との組み合わせが絶景。'},
+  {id:15,name:'五色沼（裏磐梯）',pref:'福島県',pc:7,lat:37.681,lng:139.961,cat:'絶景',tag:['湖沼','紅葉','コバルトブルー'],pop:5,diff:'hard',note:'磐梯朝日国立公園内。色とりどりの湖沼群が美しいが国立公園規制対象。許可申請を要する。'},
+  // 茨城
+  {id:16,name:'霞ヶ浦',pref:'茨城県',pc:8,lat:36.010,lng:140.342,cat:'絶景',tag:['湖','帆引き船'],pop:4,diff:'easy',note:'日本第2位の湖。湖岸の低密度エリアから撮影しやすい。帆引き船とのコラボ写真が人気。'},
+  {id:17,name:'袋田の滝',pref:'茨城県',pc:8,lat:36.564,lng:140.348,cat:'絶景',tag:['滝','紅葉','氷瀑'],pop:4,diff:'medium',note:'日本三名瀑の一つ。渓谷内は飛行困難。滝上部の展望台エリアから遠景を狙う形が一般的。'},
+  {id:96,name:'筑波山',pref:'茨城県',pc:8,lat:36.225,lng:140.106,cat:'絶景',tag:['山岳','関東平野','双耳峰'],pop:4,diff:'medium',note:'関東平野に聳える双耳峰。山頂付近は自然公園。山麓の農村・筑波山麓広域農道周辺から関東平野の大パノラマ撮影が可能。強風注意。'},
+  {id:97,name:'大洗磯前神社・大洗海岸',pref:'茨城県',pc:8,lat:36.312,lng:140.575,cat:'海岸',tag:['鳥居','荒磯','朝日'],pop:5,diff:'easy',note:'岩礁に立つ「神磯の鳥居」は日の出スポットとして全国的に有名。DID外の海岸線で飛行しやすい。早朝の逆光撮影が特に人気。'},
+  {id:98,name:'偕楽園・千波湖',pref:'茨城県',pc:8,lat:36.369,lng:140.451,cat:'絶景',tag:['梅林','湖','日本三名園'],pop:3,diff:'medium',note:'日本三名園の一つ。梅まつり時期（2〜3月）は観光客が多く飛行規制に注意。千波湖岸の公開エリアから梅林俯瞰を狙う。'},
+  // 栃木
+  {id:18,name:'那須高原',pref:'栃木県',pc:9,lat:37.127,lng:139.972,cat:'絶景',tag:['高原','牧場','紅葉'],pop:4,diff:'easy',note:'広大な高原で飛ばしやすいスポットが多い。那須岳周辺は国立公園。牧場は私有地のため許可要。'},
+  {id:19,name:'中禅寺湖（日光）',pref:'栃木県',pc:9,lat:36.738,lng:139.490,cat:'絶景',tag:['湖','紅葉','山'],pop:5,diff:'hard',note:'日光国立公園内。紅葉シーズンは観光客が非常に多い。特別保護地区の飛行制限あり。事前確認必須。'},
+  {id:99,name:'渡良瀬遊水地',pref:'栃木県',pc:9,lat:36.147,lng:139.744,cat:'絶景',tag:['湿地','葦原','ラムサール'],pop:3,diff:'easy',note:'国内最大の遊水地でラムサール条約登録地。広大な葦原と青空のコントラストが圧巻。人口密度が低くDID外で飛行しやすい穴場スポット。'},
+  {id:100,name:'龍王峡',pref:'栃木県',pc:9,lat:36.820,lng:139.617,cat:'絶景',tag:['渓谷','岩壁','紅葉'],pop:3,diff:'hard',note:'鬼怒川上流の渓谷で柱状節理の岩壁が続く。渓谷内は飛行困難。遊歩道の上部から遠景を狙う。紅葉シーズンが特に美しい。'},
+  {id:101,name:'那珂川・馬頭周辺',pref:'栃木県',pc:9,lat:36.829,lng:140.144,cat:'田園',tag:['河川','農村','棚田'],pop:2,diff:'easy',note:'那珂川沿いの農村地帯でDID外が多く比較的飛行しやすい。棚田と里山の景観が残るエリア。農繁期の配慮が必要。'},
+  // 群馬
+  {id:20,name:'吹割の滝',pref:'群馬県',pc:10,lat:36.673,lng:139.113,cat:'絶景',tag:['滝','渓谷'],pop:4,diff:'medium',note:'東洋のナイアガラとも呼ばれる名爆。国定公園内のため飛行規制確認が必要。観光客が多い。'},
+  {id:21,name:'草津白根山・湯釜',pref:'群馬県',pc:10,lat:36.624,lng:138.530,cat:'絶景',tag:['火山湖','山岳'],pop:4,diff:'hard',note:'活火山。噴火警戒レベルにより入山禁止になる場合あり。最新情報を必ず確認してから訪問を。'},
+  {id:102,name:'榛名湖',pref:'群馬県',pc:10,lat:36.394,lng:138.869,cat:'絶景',tag:['火口湖','高原','紅葉'],pop:4,diff:'easy',note:'榛名山の火口湖で標高約1100m。高原湖のためDID外で飛行しやすい。秋の紅葉と湖面が美しく、冬季は強風・凍結に注意。'},
+  {id:103,name:'嬬恋村キャベツ畑',pref:'群馬県',pc:10,lat:36.532,lng:138.635,cat:'田園',tag:['高原農業','キャベツ','夏'],pop:4,diff:'easy',note:'日本有数のキャベツ産地。夏（7〜9月）は山肌を覆う緑のカーペットが絶景。農繁期の農作業を妨げない配慮が必要。DID外が多い。'},
+  {id:104,name:'赤城山・大沼',pref:'群馬県',pc:10,lat:36.546,lng:139.183,cat:'絶景',tag:['火口湖','山岳','関東平野'],pop:4,diff:'medium',note:'赤城山山頂部の火口湖。関東平野を一望できる。赤城自然園周辺は飛行許可要。湖面の冬季わかさぎ釣りシーズンは人が多い。'},
+  // 埼玉
+  {id:22,name:'長瀞・荒川ライン',pref:'埼玉県',pc:11,lat:36.102,lng:139.096,cat:'絶景',tag:['川','渓谷','紅葉'],pop:3,diff:'medium',note:'奥秩父県立自然公園内。観光ボートが通過するため第三者上空禁止に注意。秋の紅葉が美しい。'},
+  {id:23,name:'秩父・芦ヶ久保（道の駅周辺）',pref:'埼玉県',pc:11,lat:35.981,lng:139.038,cat:'田園',tag:['農村','花畑'],pop:3,diff:'easy',note:'秩父の農村地帯。比較的人口密度が低くDID外のエリアあり。四季の花畑が人気。'},
+  {id:105,name:'羊山公園・芝桜の丘',pref:'埼玉県',pc:11,lat:35.993,lng:139.080,cat:'絶景',tag:['芝桜','春','武甲山'],pop:5,diff:'medium',note:'4〜5月の芝桜シーズンは観光客が多く第三者上空禁止に注意。武甲山を背景にした俯瞰が人気。早朝の開園前に近隣から狙う形が現実的。'},
+  {id:106,name:'行田・古代蓮の里',pref:'埼玉県',pc:11,lat:36.149,lng:139.456,cat:'田園',tag:['蓮','夏','古代米'],pop:3,diff:'easy',note:'7月の蓮の開花シーズンが見頃。水田アートでも有名。周辺はDID外の農村地帯で飛行しやすい。展望台からの構図と組み合わせると効果的。'},
+  // 千葉
+  {id:24,name:'九十九里浜',pref:'千葉県',pc:12,lat:35.586,lng:140.461,cat:'海岸',tag:['砂浜','波','夕日'],pop:4,diff:'easy',note:'60kmに及ぶ長大な砂浜海岸。人が少ない区間を選べば比較的飛ばしやすい好スポット。早朝がおすすめ。'},
+  {id:25,name:'銚子・犬吠埼',pref:'千葉県',pc:12,lat:35.707,lng:140.870,cat:'海岸',tag:['岬','灯台','初日の出'],pop:4,diff:'easy',note:'本州最東端の岬。灯台と太平洋の絶景。元日の初日の出スポットとして有名。DID外で飛ばしやすい。'},
+  {id:107,name:'いすみ・菜の花ロード',pref:'千葉県',pc:12,lat:35.249,lng:140.371,cat:'田園',tag:['菜の花','春','ローカル線'],pop:4,diff:'easy',note:'3〜4月の菜の花シーズンにいすみ鉄道沿いが黄色いじゅうたんに。ローカル列車と菜の花の組み合わせが人気。DID外の農村地帯で飛行しやすい。'},
+  {id:108,name:'養老渓谷',pref:'千葉県',pc:12,lat:35.259,lng:140.089,cat:'絶景',tag:['渓谷','紅葉','秘境'],pop:4,diff:'medium',note:'千葉県最大の紅葉スポット。11月下旬〜12月上旬が見頃。渓谷内は飛行困難なため周辺の高台から俯瞰撮影。シーズンは観光客多め。'},
+  {id:109,name:'館山・鏡ヶ浦',pref:'千葉県',pc:12,lat:34.989,lng:139.862,cat:'海岸',tag:['湾','夕日','富士山'],pop:4,diff:'easy',note:'波が穏やかで「鏡ヶ浦」の異名を持つ。富士山と夕日のコラボが絶景ポイント。DID外の海岸線沿いで飛行しやすく、冬季の富士山ビューが特に人気。'},
+  {id:110,name:'屏風ヶ浦',pref:'千葉県',pc:12,lat:35.649,lng:140.831,cat:'海岸',tag:['断崖','東洋のドーバー','迫力'],pop:4,diff:'easy',note:'高さ約50mの白亜の断崖が10km以上続く「東洋のドーバー」。DID外の海岸線でアクセスしやすい。侵食が進むため崖縁への接近は禁止。'},
+  // 東京
+  {id:26,name:'奥多摩湖',pref:'東京都',pc:13,lat:35.797,lng:139.001,cat:'絶景',tag:['ダム湖','紅葉'],pop:4,diff:'medium',note:'秩父多摩甲斐国立公園内。湖岸の農村・道路沿いからの飛行に限定されるケースが多い。紅葉シーズンが美しい。'},
+  {id:27,name:'夢の島公園（国家戦略特区）',pref:'東京都',pc:13,lat:35.655,lng:139.836,cat:'絶景',tag:['都市','特区'],pop:3,diff:'medium',note:'国家戦略特区指定の飛行空域として設定されており、申請で飛行可能なケースあり。最新情報を確認。'},
+  {id:111,name:'小笠原諸島・父島',pref:'東京都',pc:13,lat:27.094,lng:142.197,cat:'海岸',tag:['世界遺産','珊瑚礁','碧い海'],pop:5,diff:'hard',note:'ユネスコ世界自然遺産。小笠原国立公園内のため飛行規制が厳しく許可申請が必要。エメラルドグリーンの海と島のコントラストが唯一無二。'},
+  {id:112,name:'高尾山エリア（山麓）',pref:'東京都',pc:13,lat:35.626,lng:139.243,cat:'絶景',tag:['山岳','紅葉','ハイキング'],pop:3,diff:'hard',note:'高尾山域は国定公園・特別地域のため飛行規制が厳しい。山麓の農村・私有地エリアで地権者許可を得た上での撮影が基本。11月の紅葉が見事。'},
+  // 神奈川
+  {id:28,name:'三浦海岸・城ヶ島',pref:'神奈川県',pc:14,lat:35.139,lng:139.614,cat:'海岸',tag:['岩礁','夕日','菜の花'],pop:4,diff:'medium',note:'城ヶ島は断崖の絶景が人気。神奈川県立公園内のため事前確認要。観光シーズンは人が多い。'},
+  {id:29,name:'足柄平野（富士山遠景）',pref:'神奈川県',pc:14,lat:35.301,lng:139.022,cat:'田園',tag:['富士山','農村'],pop:3,diff:'easy',note:'酒匂川流域の農村地帯から富士山が見える。人口密度が低いエリアあり。農繁期の作業への配慮が必要。'},
+  {id:113,name:'宮ヶ瀬湖',pref:'神奈川県',pc:14,lat:35.555,lng:139.273,cat:'絶景',tag:['ダム湖','紅葉','山'],pop:4,diff:'medium',note:'神奈川県最大のダム湖。宮ヶ瀬ダム周辺は整備された観光地。湖岸のDID外エリアから飛行が比較的しやすい。秋の紅葉と湖面の組み合わせが絶景。'},
+  {id:114,name:'江の島・片瀬海岸',pref:'神奈川県',pc:14,lat:35.300,lng:139.483,cat:'海岸',tag:['島','富士山','夕日'],pop:5,diff:'hard',note:'富士山を背景にした江の島の絶景は関東随一の人気撮影スポット。ただしDID内の可能性が高く観光客も多い。飛行前の入念な規制確認・地方航空局への申請が必須。'},
+  {id:115,name:'大山（丹沢）',pref:'神奈川県',pc:14,lat:35.433,lng:139.237,cat:'絶景',tag:['山岳','関東平野','紅葉'],pop:3,diff:'medium',note:'神奈川の霊峰。丹沢大山国定公園内のため飛行規制を確認。山麓の農村エリアから大山と関東平野のコントラストを俯瞰撮影する形が現実的。'},
+  // 新潟
+  {id:30,name:'清津峡渓谷',pref:'新潟県',pc:15,lat:37.001,lng:138.660,cat:'絶景',tag:['渓谷','柱状節理'],pop:5,diff:'hard',note:'アートトンネルで人気上昇中。渓谷内は飛行困難。上部から遠景を狙う。入場料あり（500円）。'},
+  {id:31,name:'笹ヶ峰高原',pref:'新潟県',pc:15,lat:36.939,lng:138.295,cat:'絶景',tag:['高原','牧場'],pop:3,diff:'medium',note:'なだらかな草原で人が少なく飛行しやすい。妙高戸隠連山国立公園内のため公園規制を確認。'},
+  // 富山
+  {id:32,name:'雨晴海岸',pref:'富山県',pc:16,lat:36.793,lng:136.994,cat:'海岸',tag:['立山','海越し絶景','朝日'],pop:5,diff:'medium',note:'富山湾越しに立山連峰を望む絶景。「海越しの立山」として国内外で人気。早朝の光が美しい。'},
+  {id:33,name:'美女平（立山黒部アルペンルート）',pref:'富山県',pc:16,lat:36.582,lng:137.466,cat:'絶景',tag:['高山','絶景'],pop:4,diff:'hard',note:'中部山岳国立公園内。登山道・ロープウェイ周辺は飛行困難。周辺の山麓部で条件を検討。'},
+  // 石川
+  {id:34,name:'千里浜なぎさドライブウェイ',pref:'石川県',pc:17,lat:36.862,lng:136.784,cat:'海岸',tag:['砂浜','ドライブウェイ'],pop:5,diff:'easy',note:'世界でも珍しい車で走れる砂浜。観光客が少ない時間帯なら比較的飛ばしやすい。'},
+  {id:35,name:'白米千枚田',pref:'石川県',pc:17,lat:37.388,lng:137.011,cat:'田園',tag:['棚田','夕日','朝日'],pop:5,diff:'medium',note:'世界農業遺産の棚田。棚田の持ち主への確認が必要。秋の黄金色と冬のイルミネーションが人気。'},
+  // 福井
+  {id:36,name:'東尋坊',pref:'福井県',pc:18,lat:36.260,lng:136.183,cat:'海岸',tag:['断崖','柱状節理'],pop:5,diff:'medium',note:'日本随一の断崖絶壁。早朝の飛行を推奨。観光客が多い時期は第三者上空禁止規定に注意。'},
+  {id:37,name:'越前海岸（水仙ロード）',pref:'福井県',pc:18,lat:35.875,lng:136.037,cat:'海岸',tag:['水仙','断崖','冬'],pop:3,diff:'easy',note:'1〜2月の水仙の群生が絶景。断崖と日本海の組み合わせが迫力あり。人が少ない穴場スポット。'},
+  // 山梨
+  {id:38,name:'本栖湖（富士山ビュー）',pref:'山梨県',pc:19,lat:35.464,lng:138.587,cat:'絶景',tag:['富士山','湖','1000円札'],pop:5,diff:'medium',note:'千円札の富士山ビューで有名。富士箱根伊豆国立公園内のため許可確認が必要。早朝の逆さ富士が人気。'},
+  {id:39,name:'山中湖周辺',pref:'山梨県',pc:19,lat:35.440,lng:138.857,cat:'絶景',tag:['富士山','花畑','湖'],pop:5,diff:'medium',note:'富士山が最も大きく見える湖。国立公園内のため飛行前に管理者への確認が必要。DID外エリアあり。'},
+  // 長野
+  {id:40,name:'美ヶ原高原',pref:'長野県',pc:20,lat:36.096,lng:138.070,cat:'絶景',tag:['高原','山岳','絶景'],pop:4,diff:'easy',note:'標高2000m超の広大な高原。ビーナスラインが通る開けた場所で飛行しやすいエリアあり。強風注意。'},
+  {id:41,name:'戸隠高原',pref:'長野県',pc:20,lat:36.770,lng:138.040,cat:'絶景',tag:['高原','山岳','ブナ林'],pop:4,diff:'medium',note:'妙高戸隠連山国立公園内。秋のブナ林の紅葉が格別。戸隠神社奥社エリアは文化財保護の対象。'},
+  // 岐阜
+  {id:42,name:'下呂温泉・飛騨川渓谷',pref:'岐阜県',pc:21,lat:35.810,lng:137.246,cat:'絶景',tag:['渓谷','温泉地','紅葉'],pop:3,diff:'easy',note:'飛騨川沿いの谷間の風景が美しい。市街地（DID）を避け農村・渓谷沿いで飛行しやすい。'},
+  {id:43,name:'奥飛騨温泉郷（新穂高）',pref:'岐阜県',pc:21,lat:36.300,lng:137.604,cat:'絶景',tag:['山岳','温泉','雪山'],pop:4,diff:'hard',note:'中部山岳国立公園内。新穂高ロープウェイ周辺は許可なく飛行不可。麓の農村部は要確認。'},
+  // 静岡
+  {id:44,name:'御前崎（岬）',pref:'静岡県',pc:22,lat:34.598,lng:138.215,cat:'海岸',tag:['岬','灯台','夕日'],pop:4,diff:'easy',note:'太平洋に突き出た岬。灯台周辺の草地から海を見渡せる。DID外の可能性が高い好スポット。'},
+  {id:45,name:'茶畑と富士山（富士市・富士宮市周辺）',pref:'静岡県',pc:22,lat:35.196,lng:138.618,cat:'田園',tag:['茶畑','富士山'],pop:5,diff:'medium',note:'緑の茶畑と富士山の組み合わせが絵になる。空港の管制圏・進入管制区から外れる場所を選定が重要。'},
+  // 愛知
+  {id:46,name:'渥美半島・伊良湖岬',pref:'愛知県',pc:23,lat:34.577,lng:137.025,cat:'海岸',tag:['岬','菜の花','夕日'],pop:4,diff:'easy',note:'伊勢湾と遠州灘が交わる景勝地。菜の花畑でも有名。岬の先端付近はDID外で飛ばしやすい。'},
+  {id:47,name:'段戸山高原（奥三河）',pref:'愛知県',pc:23,lat:35.118,lng:137.641,cat:'絶景',tag:['高原','紅葉','星空'],pop:3,diff:'easy',note:'奥三河の山地で人が少なく飛ばしやすい。秋の紅葉シーズンと星空観察地として有名。'},
+  // 三重
+  {id:48,name:'鬼ヶ城',pref:'三重県',pc:24,lat:33.853,lng:135.978,cat:'海岸',tag:['奇岩','断崖','熊野古道'],pop:4,diff:'medium',note:'海食洞として有名。世界遺産・熊野古道の一部。観光地として管理されており飛行前の確認が必要。'},
+  {id:49,name:'宮川ダム（奥伊勢）',pref:'三重県',pc:24,lat:34.372,lng:136.360,cat:'絶景',tag:['ダム湖','山間部'],pop:3,diff:'easy',note:'人口の少ない山間部のダム湖。周辺は林道も多く比較的自由度高く飛行できるエリアを探しやすい。'},
+  // 滋賀
+  {id:50,name:'マキノ・メタセコイア並木',pref:'滋賀県',pc:25,lat:35.450,lng:136.187,cat:'絶景',tag:['並木道','湖','紅葉'],pop:5,diff:'medium',note:'秋の紅葉が全国的に人気急上昇スポット。琵琶湖の北岸に位置。地元観光協会への確認が望ましい。'},
+  {id:51,name:'奥琵琶湖・海津大崎',pref:'滋賀県',pc:25,lat:35.521,lng:136.071,cat:'海岸',tag:['桜','湖岸'],pop:4,diff:'easy',note:'湖岸道路から桜と琵琶湖が一緒に撮影できる春の名所。平日早朝は人が少なく飛ばしやすい。'},
+  // 京都
+  {id:52,name:'美山かやぶきの里',pref:'京都府',pc:26,lat:35.378,lng:135.627,cat:'歴史',tag:['茅葺き','農村','雪景色'],pop:5,diff:'medium',note:'南丹市美山町の集落。地域の景観保全ルールがある。冬の雪景色が特に人気。市役所への確認が必要。'},
+  {id:53,name:'天橋立',pref:'京都府',pc:26,lat:35.566,lng:135.190,cat:'絶景',tag:['砂嘴','日本三景'],pop:5,diff:'hard',note:'日本三景の一つ。観光地で人が多く飛行困難。上空からの絶景は有名だが許可取得が必要。'},
+  // 大阪
+  {id:54,name:'千早赤阪村（大阪唯一の村）',pref:'大阪府',pc:27,lat:34.394,lng:135.625,cat:'田園',tag:['棚田','農村'],pop:3,diff:'easy',note:'大阪府唯一の村。棚田や農村風景が広がる。大阪市街地から離れており比較的飛ばしやすい。'},
+  {id:55,name:'能勢・妙見山周辺',pref:'大阪府',pc:27,lat:34.959,lng:135.459,cat:'絶景',tag:['山岳','里山'],pop:2,diff:'easy',note:'大阪府北端の里山。比較的人口密度が低く、山間部で飛ばしやすい場所が見つかりやすい。'},
+  // 兵庫
+  {id:56,name:'竹田城跡（対面の立雲峡）',pref:'兵庫県',pc:28,lat:35.298,lng:134.827,cat:'歴史',tag:['城跡','雲海','絶景'],pop:5,diff:'hard',note:'城跡は文化財保護法の対象で飛行禁止。対面の立雲峡展望台から地上撮影が推奨。秋の雲海が絶景。'},
+  {id:57,name:'余部鉄橋（余部橋梁）',pref:'兵庫県',pc:28,lat:35.555,lng:134.451,cat:'歴史',tag:['橋梁','鉄道','海岸'],pop:4,diff:'medium',note:'旧余部鉄橋の一部を残したコンクリート橋と海岸の組み合わせが人気。人が少ない時間帯を選ぶ。'},
+  // 奈良
+  {id:58,name:'曽爾高原',pref:'奈良県',pc:29,lat:34.527,lng:136.145,cat:'絶景',tag:['高原','ススキ'],pop:4,diff:'easy',note:'秋のススキが一面に広がる絶景高原。国定公園内。観光客が多い秋季は注意。早朝の撮影が美しい。'},
+  {id:59,name:'みたらい渓谷',pref:'奈良県',pc:29,lat:34.275,lng:135.887,cat:'絶景',tag:['渓谷','清流','紅葉'],pop:3,diff:'medium',note:'山上川沿いの美しい渓谷。夏は川遊びで人気。渓谷内は飛行困難だが上部の開けた場所から撮影可。'},
+  // 和歌山
+  {id:60,name:'串本・橋杭岩',pref:'和歌山県',pc:30,lat:33.570,lng:135.831,cat:'海岸',tag:['奇岩','日の出','天の川'],pop:5,diff:'easy',note:'太平洋に並ぶ奇岩群。夜明け前の天の川×奇岩が人気。DID外の可能性が高く比較的飛ばしやすい。'},
+  {id:61,name:'白浜・三段壁',pref:'和歌山県',pc:30,lat:33.662,lng:135.349,cat:'海岸',tag:['断崖','洞窟'],pop:4,diff:'medium',note:'高さ60mの断崖絶壁。南紀白浜の観光地のため人が多い。洞窟内部は論外だが上部の草原から飛行検討を。'},
+  // 鳥取
+  {id:62,name:'鳥取砂丘',pref:'鳥取県',pc:31,lat:35.543,lng:134.226,cat:'絶景',tag:['砂丘','砂漠','星空'],pop:5,diff:'medium',note:'日本最大の砂丘。山陰海岸国立公園内。砂丘上空の飛行は事前申請が必要。砂が機体に入らないよう注意。'},
+  {id:63,name:'大山（北壁・鍵掛峠）',pref:'鳥取県',pc:31,lat:35.362,lng:133.537,cat:'絶景',tag:['山岳','雪山','紅葉'],pop:4,diff:'hard',note:'大山隠岐国立公園の特別保護地区。山頂周辺は飛行禁止に該当。麓の農村部から遠景撮影が一般的。'},
+  // 島根
+  {id:64,name:'宍道湖（夕日の名所）',pref:'島根県',pc:32,lat:35.455,lng:132.964,cat:'絶景',tag:['湖','夕日'],pop:5,diff:'easy',note:'夕日スポットとして全国的に有名。松江市街に近いためDID確認が必要。湖岸西側の農村が飛ばしやすい。'},
+  {id:65,name:'琴ヶ浜（鳴き砂海岸）',pref:'島根県',pc:32,lat:35.056,lng:132.558,cat:'海岸',tag:['砂浜','鳴き砂','日本海'],pop:3,diff:'easy',note:'鳴き砂で有名な砂浜。人が少なく比較的飛ばしやすい。日本海の荒波と砂浜の組み合わせが迫力あり。'},
+  // 岡山
+  {id:66,name:'備中松山城（雲海スポット）',pref:'岡山県',pc:33,lat:34.823,lng:133.578,cat:'歴史',tag:['城','雲海'],pop:5,diff:'medium',note:'現存天守の中で最高所の山城。城の上空は文化財のため注意。対面の雲海展望所からの遠景が定番。'},
+  {id:67,name:'蒜山高原',pref:'岡山県',pc:33,lat:35.271,lng:133.483,cat:'田園',tag:['高原','牧場','大山ビュー'],pop:4,diff:'easy',note:'大山の麓に広がる高原。牧場は私有地のため許可が必要だが、公道周辺は飛ばしやすい場所あり。'},
+  // 広島
+  {id:68,name:'鞆の浦',pref:'広島県',pc:34,lat:34.382,lng:133.380,cat:'歴史',tag:['港町','瀬戸内海'],pop:4,diff:'medium',note:'江戸時代の面影が残る港町。映画の舞台にもなっている。町並み保存地区のため飛行は地元確認が必要。'},
+  {id:69,name:'瀬戸内しまなみ海道（因島〜生口島）',pref:'広島県',pc:34,lat:34.290,lng:133.190,cat:'海岸',tag:['橋','瀬戸内海','島'],pop:5,diff:'medium',note:'瀬戸内の多島海と橋の絶景。橋の上空は道路法の制限あり。島内の開けた農地から飛行を検討。'},
+  // 山口
+  {id:70,name:'角島大橋',pref:'山口県',pc:35,lat:34.368,lng:130.864,cat:'海岸',tag:['橋','エメラルドグリーン','夕日'],pop:5,diff:'easy',note:'エメラルドグリーンの海と橋が組み合わさる絶景スポット。周辺の農村地帯は比較的飛ばしやすい。'},
+  {id:71,name:'秋吉台カルスト台地',pref:'山口県',pc:35,lat:34.240,lng:131.309,cat:'絶景',tag:['カルスト','高原'],pop:4,diff:'easy',note:'日本最大のカルスト台地。広大な草原に岩が点在する独特の景観。秋吉台国定公園内のため規制確認を。'},
+  // 徳島
+  {id:72,name:'大歩危峡',pref:'徳島県',pc:36,lat:33.982,lng:133.895,cat:'絶景',tag:['渓谷','吉野川','紅葉'],pop:4,diff:'medium',note:'吉野川中流の渓谷美。遊覧船も運航。渓谷内は飛行が難しいため上部の展望台周辺から撮影を検討。'},
+  {id:73,name:'祖谷のかずら橋',pref:'徳島県',pc:36,lat:33.862,lng:133.714,cat:'歴史',tag:['かずら橋','秘境'],pop:4,diff:'medium',note:'日本三奇橋の一つ。私有地・観光施設のため管理者確認が必要。周辺の山岳部で条件が良い場所を探す。'},
+  // 香川
+  {id:74,name:'父母ヶ浜',pref:'香川県',pc:37,lat:34.307,lng:133.584,cat:'海岸',tag:['天空の鏡','夕日','潮溜まり'],pop:5,diff:'easy',note:'日本のウユニ塩湖として有名。夕日×潮溜まりの反射が絶景。観光客増加中。飛行可能エリアを事前確認。'},
+  {id:75,name:'小豆島・オリーブ公園',pref:'香川県',pc:37,lat:34.484,lng:134.298,cat:'絶景',tag:['島','オリーブ','地中海風'],pop:4,diff:'medium',note:'映画のロケ地としても有名。公園内は管理者確認が必要。島内の農村部は比較的飛ばしやすい場所あり。'},
+  // 愛媛
+  {id:76,name:'下灘駅',pref:'愛媛県',pc:38,lat:33.743,lng:132.417,cat:'絶景',tag:['海に近い駅','夕日','ノスタルジー'],pop:5,diff:'medium',note:'日本一海に近い無人駅として有名。撮影者が多く集まる。電車通過時間に合わせると映える。線路上は禁止。'},
+  {id:77,name:'四国カルスト・天狗高原',pref:'愛媛県',pc:38,lat:33.474,lng:132.799,cat:'絶景',tag:['カルスト','高原','牧場'],pop:4,diff:'easy',note:'標高1400m超の高原地帯。牧場と石灰岩が共存するダイナミックな景観。強風あり。高知県との境に位置。'},
+  // 高知
+  {id:78,name:'四万十川（沈下橋）',pref:'高知県',pc:39,lat:33.212,lng:133.007,cat:'絶景',tag:['川','沈下橋','清流'],pop:5,diff:'easy',note:'日本最後の清流と呼ばれる四万十川。沈下橋の俯瞰写真が有名。川沿いの農村地帯は比較的飛ばしやすい。'},
+  {id:79,name:'室戸岬',pref:'高知県',pc:39,lat:33.249,lng:134.175,cat:'海岸',tag:['岬','奇岩'],pop:3,diff:'easy',note:'太平洋に突き出た岬。ユネスコ世界ジオパーク認定エリア。人が少なく飛ばしやすいが強風・塩害に注意。'},
+  // 福岡
+  {id:80,name:'糸島・桜井二見ヶ浦',pref:'福岡県',pc:40,lat:33.543,lng:130.158,cat:'海岸',tag:['夕日','鳥居','海岸'],pop:5,diff:'medium',note:'海に立つ夫婦岩と夕日が幻想的。糸島半島の人気スポット。玄界灘の海上空の空域確認が必要。'},
+  {id:81,name:'能古島',pref:'福岡県',pc:40,lat:33.634,lng:130.310,cat:'絶景',tag:['島','菜の花','博多湾'],pop:4,diff:'medium',note:'博多湾に浮かぶ島。春の菜の花とコスモスが咲く。フェリーでのアクセス。島内のDID状況を確認の上飛行を。'},
+  // 佐賀
+  {id:82,name:'有明海干潟・竹崎海岸',pref:'佐賀県',pc:41,lat:32.983,lng:130.176,cat:'海岸',tag:['干潟','有明海','ムツゴロウ'],pop:3,diff:'easy',note:'有明海の干潟を見渡せる。干潮時の干潟と水面のコントラストが美しい。ムツゴロウが生息する貴重な生態系。'},
+  {id:83,name:'七ツ釜（玄海国定公園）',pref:'佐賀県',pc:41,lat:33.513,lng:129.862,cat:'海岸',tag:['洞窟','玄武岩','断崖'],pop:4,diff:'medium',note:'玄界灘の玄武岩の洞窟群。玄海国定公園内のため飛行規制を確認。遊覧船から見る洞窟は圧巻。'},
+  // 長崎
+  {id:84,name:'九十九島（西海国立公園）',pref:'長崎県',pc:42,lat:33.131,lng:129.535,cat:'海岸',tag:['多島海','島々','夕日'],pop:5,diff:'medium',note:'208の島が連なる多島海景観。西海国立公園内。石岳展望台から地上撮影も人気。飛行は国立公園規制確認。'},
+  {id:85,name:'長崎・稲佐山',pref:'長崎県',pc:42,lat:32.763,lng:129.859,cat:'絶景',tag:['夜景','山頂','日本三大夜景'],pop:4,diff:'hard',note:'日本三大夜景のひとつ。市街地上空のため夜間飛行・DID制限のダブル制約がある。許可申請が必要。'},
+  // 熊本
+  {id:86,name:'阿蘇・大観峰',pref:'熊本県',pc:43,lat:33.029,lng:131.117,cat:'絶景',tag:['カルデラ','外輪山','雲海'],pop:5,diff:'easy',note:'世界最大級のカルデラを見渡す展望台。早朝の雲海が絶景。周辺の農村部で飛行しやすいエリアあり。'},
+  {id:87,name:'白川水源（南阿蘇）',pref:'熊本県',pc:43,lat:32.881,lng:131.099,cat:'絶景',tag:['湧き水','清流','農村'],pop:3,diff:'easy',note:'毎分約60tが湧き出す名水の地。南阿蘇の農村地帯で人が少ない場所が見つけやすい。'},
+  // 大分
+  {id:88,name:'九重夢大吊橋周辺',pref:'大分県',pc:44,lat:33.082,lng:131.184,cat:'絶景',tag:['吊り橋','渓谷','紅葉'],pop:4,diff:'hard',note:'日本最長の歩行者専用吊り橋。橋上空は人が歩いており飛行禁止。付近の展望地から紅葉を狙う。'},
+  {id:89,name:'くじゅう連山・長者原',pref:'大分県',pc:44,lat:33.090,lng:131.245,cat:'絶景',tag:['高原','山岳','ミヤマキリシマ'],pop:4,diff:'hard',note:'阿蘇くじゅう国立公園内。特別保護地区に該当する可能性が高い。事前に国立公園への申請確認を。'},
+  // 宮崎
+  {id:90,name:'高千穂峡',pref:'宮崎県',pc:45,lat:32.712,lng:131.305,cat:'絶景',tag:['渓谷','滝','神話'],pop:5,diff:'hard',note:'神話の舞台。ボートが通るため第三者上空飛行禁止。渓谷内での飛行も困難。上部展望台から地上撮影が安全。'},
+  {id:91,name:'都井岬（野生馬）',pref:'宮崎県',pc:45,lat:31.379,lng:131.266,cat:'絶景',tag:['岬','野生馬','夕日'],pop:4,diff:'easy',note:'御崎馬が生息する岬。入場料が必要。馬への過度な接近はNG。周辺の草原は開けており飛ばしやすい場所あり。'},
+  // 鹿児島
+  {id:92,name:'桜島・湯之平展望所',pref:'鹿児島県',pc:46,lat:31.581,lng:130.669,cat:'絶景',tag:['火山','噴火','鹿児島湾'],pop:5,diff:'medium',note:'活火山のため噴火警戒レベルに注意。火山ガス・火山灰での機体ダメージリスクあり。展望所周辺から撮影。'},
+  {id:93,name:'指宿・長崎鼻',pref:'鹿児島県',pc:46,lat:31.098,lng:130.587,cat:'海岸',tag:['岬','開聞岳','夕日'],pop:3,diff:'easy',note:'開聞岳を望む薩摩半島南端の岬。DID外で比較的飛ばしやすい。夕日と薩摩富士（開聞岳）の組み合わせが美しい。'},
+  // 沖縄
+  {id:94,name:'川平湾（石垣島）',pref:'沖縄県',pc:47,lat:24.468,lng:124.145,cat:'海岸',tag:['エメラルドグリーン','珊瑚礁'],pop:5,diff:'medium',note:'日本百景。ガラス底ボートが運航中のため第三者上空飛行に注意。石垣市への事前確認が必要な場合あり。'},
+  {id:95,name:'宮古島・東平安名崎',pref:'沖縄県',pc:47,lat:24.720,lng:125.464,cat:'海岸',tag:['岬','エメラルド','夕日'],pop:5,diff:'easy',note:'宮古島最東端の岬。周囲を海に囲まれた絶景スポット。DID外で比較的飛ばしやすい。灯台と海が美しい。'}
+];
+
+let spotsMap = null;
+let spotsMarkers = [];
+let spotsCatFilter = '';
+let spotsDiffFilter = '';
+
+function initSpotsTab() {
+  // 都道府県ドロップダウンを初回のみ生成
+  const sel = document.getElementById('spots-pref-select');
+  if (sel.options.length === 1) {
+    const seen = new Set();
+    SPOTS.forEach(s => {
+      if (!seen.has(s.pc)) {
+        seen.add(s.pc);
+        const opt = document.createElement('option');
+        opt.value = s.pref;
+        opt.textContent = s.pref;
+        sel.appendChild(opt);
+      }
+    });
+  }
+  // 地図の初期化
+  if (!spotsMap) {
+    spotsMap = L.map('spots-map', {zoomControl:true, attributionControl:false})
+      .setView([36.5, 137.0], 5);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {maxZoom:18}).addTo(spotsMap);
+    // display:none タブ内で初期化するとタイルが 0×0 になるため即座にサイズ再計算
+    setTimeout(() => spotsMap && spotsMap.invalidateSize(), 50);
+  } else {
+    spotsMap.invalidateSize();
+  }
+  filterSpots();
+}
+
+function setCatFilter(cat, btn) {
+  spotsCatFilter = cat;
+  document.querySelectorAll('#spots-cat-chips .fchip').forEach(b => b.classList.remove('on'));
+  btn.classList.add('on');
+  filterSpots();
+}
+
+function setDiffFilter(diff, btn) {
+  spotsDiffFilter = diff;
+  document.querySelectorAll('#spots-diff-chips .fchip').forEach(b => b.classList.remove('on'));
+  btn.classList.add('on');
+  filterSpots();
+}
+
+function filterSpots() {
+  const pref = document.getElementById('spots-pref-select').value;
+  const filtered = SPOTS.filter(s => {
+    if (pref && s.pref !== pref) return false;
+    if (spotsCatFilter && s.cat !== spotsCatFilter) return false;
+    if (spotsDiffFilter && s.diff !== spotsDiffFilter) return false;
+    return true;
+  });
+  renderSpotCards(filtered);
+  renderSpotMarkers(filtered);
+}
+
+function diffLabel(d) {
+  return d==='easy'?'✓ 比較的容易':d==='medium'?'△ 要確認':'✕ 困難';
+}
+
+function renderSpotCards(spots) {
+  const grid = document.getElementById('spots-grid');
+  const count = document.getElementById('spots-count');
+  count.textContent = spots.length + ' 件のスポット';
+  if (spots.length === 0) {
+    grid.innerHTML = '<div class="spots-empty">条件に合うスポットが見つかりません</div>';
+    return;
+  }
+  grid.innerHTML = spots.map(s =>
+    '<div class="spot-card" id="scard-' + s.id + '" onclick="zoomToSpot(' + s.id + ')">' +
+      '<div class="spot-card-head">' +
+        '<div class="spot-name">' + esc(s.name) + '</div>' +
+        '<div class="spot-pop">' + '★'.repeat(s.pop) + '☆'.repeat(5-s.pop) + '</div>' +
+      '</div>' +
+      '<div class="spot-meta">' +
+        '<span class="scat-tag scat-' + esc(s.cat) + '">' + esc(s.cat) + '</span>' +
+        '<span class="sdiff-tag sdiff-' + esc(s.diff) + '">' + diffLabel(s.diff) + '</span>' +
+        '<span style="font-size:11px;color:var(--text3);">' + esc(s.pref) + '</span>' +
+      '</div>' +
+      '<div class="spot-tags">' + s.tag.map(t => '<span class="spot-tag">' + esc(t) + '</span>').join('') + '</div>' +
+      '<div class="spot-note">' + esc(s.note) + '</div>' +
+      '<button class="spot-use-btn" onclick="event.stopPropagation();useSpotForCheck(' + s.id + ')">🚁 このスポットで飛行チェック</button>' +
+    '</div>'
+  ).join('');
+}
+
+const catColor = {絶景:'#a78bfa',海岸:'#60a5fa',田園:'#22d3a1',歴史:'#fbbf24'};
+
+function renderSpotMarkers(spots) {
+  if (!spotsMap) return;
+  spotsMarkers.forEach(m => spotsMap.removeLayer(m));
+  spotsMarkers = [];
+  spots.forEach(s => {
+    const col = catColor[s.cat] || '#94a3b8';
+    const icon = L.divIcon({
+      className:'',
+      html:'<div style="width:11px;height:11px;border-radius:50%;background:' + col + ';border:2px solid #fff;box-shadow:0 0 5px ' + col + '99;"></div>',
+      iconSize:[11,11],iconAnchor:[5,5]
+    });
+    const m = L.marker([s.lat, s.lng], {icon}).addTo(spotsMap);
+    m._spotId = s.id;
+    m.bindPopup(
+      '<strong>' + esc(s.name) + '</strong><br>' +
+      '<span style="color:#94a3b8;">' + esc(s.pref) + ' / ' + esc(s.cat) + '</span><br>' +
+      '<button onclick="useSpotForCheck(' + s.id + ')" style="margin-top:6px;width:100%;padding:5px 8px;font-size:11px;background:rgba(14,165,233,.2);border:1px solid rgba(14,165,233,.5);color:#38bdf8;border-radius:5px;cursor:pointer;">🚁 ここで飛行チェック</button>',
+      {maxWidth:200}
+    );
+    m.on('click', () => {
+      const card = document.getElementById('scard-' + s.id);
+      if (card) card.scrollIntoView({behavior:'smooth', block:'nearest'});
+    });
+    spotsMarkers.push(m);
+  });
+  if (spots.length > 0 && spots.length < SPOTS.length) {
+    try {
+      const grp = L.featureGroup(spotsMarkers);
+      spotsMap.fitBounds(grp.getBounds().pad(0.15));
+    } catch(e) {}
+  } else {
+    spotsMap.setView([36.5, 137.0], 5);
+  }
+}
+
+function zoomToSpot(id) {
+  const s = SPOTS.find(x => x.id === id);
+  if (!s || !spotsMap) return;
+  spotsMap.setView([s.lat, s.lng], 11);
+  const m = spotsMarkers.find(x => x._spotId === id);
+  if (m) m.openPopup();
+}
+
+/* スポットカテゴリー/タグ → 場所種別の自動選択 */
+function getLocTypesForSpot(s) {
+  const locs = new Set();
+  const catMap = {
+    '海岸': ['loc-beach', 'loc-tourism'],
+    '田園': ['loc-farm', 'loc-private'],
+    '歴史': ['loc-heritage', 'loc-tourism'],
+    '絶景': ['loc-forest', 'loc-public'],
+  };
+  (catMap[s.cat] || []).forEach(l => locs.add(l));
+  const tagMap = {
+    '砂浜':'loc-beach', '海岸':'loc-beach', '島':'loc-beach',
+    '棚田':'loc-farm', '農村':'loc-farm', '花畑':'loc-farm', '茶畑':'loc-farm',
+    '牧場':'loc-private',
+    '城':'loc-heritage', '城跡':'loc-heritage', '石仏':'loc-heritage',
+    '世界遺産':'loc-heritage', '合掌造り':'loc-heritage',
+    '神社':'loc-heritage', '寺':'loc-heritage', '霊場':'loc-heritage',
+    '展望台':'loc-tourism', '観光':'loc-tourism',
+    '国立公園':'loc-forest', '山岳':'loc-forest', '渓谷':'loc-forest',
+    '高原':'loc-forest', '湖':'loc-forest', '滝':'loc-forest', 'ブナ林':'loc-forest',
+    '砂丘':'loc-beach', 'ダム湖':'loc-public',
+    '港':'loc-port', '漁港':'loc-port',
+  };
+  s.tag.forEach(t => { if (tagMap[t]) locs.add(tagMap[t]); });
+  // 海岸・農地があれば自然系のforestは外す
+  if ((locs.has('loc-beach') || locs.has('loc-farm')) && s.cat !== '絶景') locs.delete('loc-forest');
+  return [...locs];
+}
+
+function autoSelectLocTypes(ids, showHint) {
+  document.querySelectorAll('.chk-item[data-id^="loc-"]').forEach(el => el.classList.remove('on'));
+  ids.forEach(id => {
+    const el = document.querySelector('.chk-item[data-id="' + id + '"]');
+    if (el) el.classList.add('on');
+  });
+  const hint = document.getElementById('loc-hint');
+  if (hint) hint.style.display = showHint ? 'block' : 'none';
+}
+
+function useSpotForCheck(id) {
+  const s = SPOTS.find(x => x.id === id);
+  if (!s) return;
+  // 飛行チェックタブへ切り替え（onclick属性で確実に特定）
+  const checkBtn = document.querySelector(".tab-btn[onclick*=\"'check'\"]");
+  switchTab('check', checkBtn);
+  // 住所フィールドに設定
+  document.getElementById('address').value = s.name + '（' + s.pref + '）';
+  // 位置情報を設定して各種チェックを起動
+  setTimeout(() => {
+    setLocation(s.lat, s.lng);
+    const geoEl = document.getElementById('geo-result');
+    geoEl.className = 'geo-result ok';
+    geoEl.style.display = 'block';
+    geoEl.textContent = '✓ ' + s.name + '（緯度:' + s.lat.toFixed(5) + ', 経度:' + s.lng.toFixed(5) + '）';
+    // 場所種別を自動選択してヒントを表示
+    autoSelectLocTypes(getLocTypesForSpot(s), true);
+  }, 150);
+}
 </script>
 </body>
 </html>
