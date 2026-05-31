@@ -9,6 +9,7 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
 <script src="https://unpkg.com/xlsx@0.18.5/dist/xlsx.full.min.js" crossorigin=""></script>
+<script src="https://unpkg.com/jszip@3.10.1/dist/jszip.min.js" crossorigin=""></script>
 <style>
 :root {
   --bg:#0a0e1a; --bg2:#111827; --bg3:#1a2236;
@@ -239,6 +240,14 @@ hr.div{border:none;border-top:1px solid var(--border);margin:18px 0;}
 .footnote{font-size:11px;color:var(--text3);text-align:center;padding:14px 0 0;line-height:2.2;}
 .footnote a{color:var(--accent);text-decoration:none;}
 .footnote a:hover{text-decoration:underline;}
+
+/* ── CITY HALL CARD ── */
+.city-hall-card{background:rgba(167,139,250,0.07);border:1px solid rgba(167,139,250,0.28);border-radius:var(--rl);padding:.9rem 1.1rem;margin-bottom:12px;}
+.city-hall-head{font-size:12px;font-weight:700;color:var(--purple);margin-bottom:8px;letter-spacing:.04em;}
+.city-hall-body{font-size:12px;color:var(--text2);}
+
+/* ── LOG REFLECT BAR ── */
+.log-reflect-bar{margin-top:10px;padding:10px 14px;background:rgba(56,189,248,.05);border:1px solid rgba(56,189,248,.2);border-radius:var(--r);display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
 
 /* ── HISTORY ── */
 .hist-item{background:var(--bg2);border:1px solid var(--border);border-radius:var(--rl);padding:11px 15px;margin-bottom:10px;}
@@ -674,10 +683,7 @@ hr.div{border:none;border-top:1px solid var(--border);margin:18px 0;}
 
   <div class="ver-bar">
     <span class="ver-txt">📓 飛行日誌（様式１）— 航空法施行規則第236条の84準拠</span>
-    <div style="display:flex;gap:8px;">
-      <button class="save-btn" onclick="exportLogCSV()" style="font-size:11px;padding:6px 14px;">📄 CSV出力</button>
-      <button class="save-btn" onclick="exportLogXLSX()" style="font-size:11px;padding:6px 14px;background:rgba(34,211,161,0.15);">📊 Excel出力</button>
-    </div>
+    <span style="font-size:11px;color:var(--text3);">一覧から記録を選択して出力してください</span>
   </div>
 
   <!-- 新規記録追加 -->
@@ -794,6 +800,8 @@ const HIST_KEY    = 'drone_history_v4';
 const PF_KEY      = 'drone_preflight_v1';
 const LOG_KEY     = 'drone_flightlog_v1';
 const LAW_KEY     = 'drone_law_check_v1';  // 法令チェック記録
+const LOG_TEMPLATE_B64 = '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';
+
 
 // アプリの法令情報基準日（法令改正があったら更新する）
 const APP_LAW_DATE = '2025-05-23';
@@ -820,6 +828,7 @@ function esc(s){
 ============================================================ */
 let geoLat=null,geoLon=null,autoDID=null,nearestAP=null,majorAP=null;
 let mapMarker=null,currentPref='',currentCity='';
+let cityHallData=null;
 
 /* ============================================================
    法令改正チェックシステム — 3段階フォールバック方式
@@ -1105,7 +1114,7 @@ function setMapPin(lat,lon){
 ============================================================ */
 function setLocation(lat,lon){
   geoLat=lat;geoLon=lon;
-  autoDID=null;nearestAP=null;majorAP=null;currentPref='';currentCity='';
+  autoDID=null;nearestAP=null;majorAP=null;currentPref='';currentCity='';cityHallData=null;
   setMapPin(lat,lon);
   const dr=document.getElementById('detect-row');
   dr.style.display='flex';
@@ -1159,6 +1168,7 @@ async function reverseGeocode(lat,lon){
       geoEl.className='geo-result ok';
       geoEl.textContent='📍 '+addr+'（緯度:'+lat.toFixed(5)+', 経度:'+lon.toFixed(5)+'）';
       document.getElementById('address').value=addr;
+      fetchCityHallInfo(currentCity,currentPref);
     }else{
       geoEl.className='geo-result ok';
       geoEl.textContent='📍 緯度:'+lat.toFixed(5)+', 経度:'+lon.toFixed(5);
@@ -1172,8 +1182,29 @@ async function reverseGeocodeState(lat,lon){
     const res=await fetch('https://mreversegeocoder.gsi.go.jp/reverse-geocoder/LonLatToAddress?lon='+lon.toFixed(6)+'&lat='+lat.toFixed(6),{mode:'cors'});
     const data=await res.json();
     const r=data.results;
-    if(r&&r.muniCd){currentPref=r.lv01Nm||'';currentCity=r.lv02Nm||r.lv01Nm||'';}
+    if(r&&r.muniCd){currentPref=r.lv01Nm||'';currentCity=r.lv02Nm||r.lv01Nm||'';fetchCityHallInfo(currentCity,currentPref);}
   }catch(e){}
+}
+
+/* 市区町村役所の位置情報をGSI APIで取得 */
+async function fetchCityHallInfo(city,pref){
+  cityHallData=null;
+  if(!city)return;
+  const hall=(city.endsWith('村')||city.endsWith('町'))?'役場':'市役所';
+  // 検索クエリ候補（ヒットしない場合に順次試す）
+  const queries=[city+' '+hall, pref+city+' '+hall, city];
+  for(const q of queries){
+    try{
+      const res=await fetch('https://msearch.gsi.go.jp/address-search/AddressSearch?q='+encodeURIComponent(q),{mode:'cors'});
+      if(!res.ok)continue;
+      const data=await res.json();
+      if(Array.isArray(data)&&data.length){
+        const[lon,lat]=data[0].geometry.coordinates;
+        cityHallData={lat,lon,title:data[0].properties?.title||'',city,pref,hall};
+        return;
+      }
+    }catch(e){}
+  }
 }
 
 /* ============================================================
@@ -1245,8 +1276,12 @@ function cv(id){const el=document.querySelector('[data-id="'+id+'"]');return el?
 /* ============================================================
    ANALYZE
 ============================================================ */
-function analyze(){
+async function analyze(){
   if(!geoLat||!geoLon){alert('先に飛行場所を入力または地図上でクリックしてください。');return;}
+  // 市区町村名が未取得の場合は先に取得
+  if(!currentCity) await reverseGeocodeState(geoLat,geoLon);
+  // 市役所情報が未取得の場合はここで待機
+  if(!cityHallData&&currentCity) await fetchCityHallInfo(currentCity,currentPref);
   const p=getPilot();
   const hasCert1=p?!!p.chk_cert1:false,hasCert2=p?!!p.chk_cert2:false;
   const hasNight=p?!!p['chk_night-cert']:false,hasBvlos=p?!!p['chk_bvlos-cert']:false;
@@ -1331,8 +1366,10 @@ function analyze(){
   if(anyLoc)      reqs.push({t:'ok', key:'loc-police',    title:'管轄警察署への事前連絡（推奨）',detail:'法的義務ではありませんが、飛行前に管轄警察署（地域課・生活安全課）へ日時・場所・目的を連絡しておくと、第三者通報時のトラブルを防げます。'});
 
   /* 申請先一覧 — reqKeysでチェックリスト項目と紐付け */
-  const city=currentCity||currentPref||'（飛行地）';
-  function sLink(q,lbl){const u='https://www.google.com/search?q='+encodeURIComponent(q);return '<a href="'+esc(u)+'" target="_blank" rel="noopener" class="search-link">🔍 '+esc(lbl)+'</a>';}
+  const rawAddr=document.getElementById('address').value;
+  const cleanAddr=rawAddr.replace(/（[^）]+）/g,'').replace(/\([^)]+\)/g,'').trim();
+  const city=currentCity||currentPref||cleanAddr||'飛行地';
+  function sLink(q,lbl){const u='https://www.google.com/search?q='+encodeURIComponent(q);const dl=lbl.replace('（飛行地）','').trim();return '<a href="'+esc(u)+'" target="_blank" rel="noopener" class="search-link">🔍 '+esc(dl||lbl)+'</a>';}
   const subs=[];
   if(did||inAP9k||above150||night||bvlos||close||event||drop||heavy||crowd||agri){
     const rk=['did','ap9k','alt150','night','bvlos','close','event','drop','heavy','crowd','agri'].filter(k=>reqs.some(r=>r.key===k));
@@ -1344,8 +1381,8 @@ function analyze(){
   if(restricted){subs.push({reason:'特定重要施設周辺の飛行',law:'小型無人機等飛行禁止法 第2条・第9条',to:'管轄警察署＋施設管理者',detail:'原則飛行禁止。管轄警察署への事前通報と施設管理者の許可が必要。',deadline:'飛行前（許可が下りない場合あり）',url:'https://www.npa.go.jp/',links:[sLink(city+' 警察署 住所 電話番号',city+' 管轄警察署')],reqKeys:['restricted']});}
   if(road){subs.push({reason:'公道上・道路際からの離発着',law:'道路交通法 第77条',to:'管轄警察署（交通課）',detail:'管轄警察署の交通課へ申請。申請書・図面・飛行計画書を添付。',deadline:'飛行1〜2週間前まで',url:'https://www.npa.go.jp/bureau/traffic/content/road_use.pdf',links:[sLink(city+' 警察署 交通課 道路使用許可',city+' 警察署 交通課')],reqKeys:['road']});}
   if(river){subs.push({reason:'河川・湖沼・海岸上空の飛行',law:'河川法 / 海岸法',to:'河川管理者（国交省河川事務所・都道府県）または海上保安庁',detail:'一級河川は国交省河川事務所、二級河川は都道府県担当課、海上は海上保安部へ。',deadline:'飛行前（早めに問い合わせ）',url:'https://www.mlit.go.jp/river/index.html',links:[sLink(city+' 河川事務所 電話番号',city+' 河川事務所'),sLink(city+' 海上保安部 電話番号','最寄り 海上保安部')],reqKeys:['river']});}
-  if(park){subs.push({reason:'公園・自然公園内での飛行',law:'都市公園法 / 自然公園法',to:'公園管理者（各自治体）または環境省・都道府県',detail:'都市公園は各市区町村公園管理事務所へ。国立公園は環境省または都道府県自然保護課へ。',deadline:'飛行前（数週間かかる場合あり）',url:'https://www.env.go.jp/nature/np/intro.html',links:[sLink(city+' 公園管理事務所 ドローン 許可',city+' 公園管理事務所')],reqKeys:['park']});}
-  if(agri){subs.push({reason:'農薬散布',law:'農薬取締法',to:'市区町村農業委員会・都道府県農業改良普及センター',detail:'農薬の適正使用義務あり。散布前に近隣農家・住民へ周知。',deadline:'散布前（余裕をもって）',url:'https://www.maff.go.jp/j/nouyaku/',links:[sLink(city+' 農業委員会 電話番号',city+' 農業委員会')],reqKeys:['agri']});}
+  if(park){subs.push({reason:'公園・自然公園内での飛行',law:'都市公園法 / 自然公園法',to:'公園管理者（各自治体）または環境省・都道府県',detail:'都市公園は各市区町村公園管理事務所へ。国立公園は環境省または都道府県自然保護課へ。',deadline:'飛行前（数週間かかる場合あり）',url:'https://www.env.go.jp/nature/np/intro.html',cityDept:'公園管理事務所 ドローン',links:[sLink(city+' 公園管理事務所 ドローン 許可',city+' 公園管理事務所')],reqKeys:['park']});}
+  if(agri){subs.push({reason:'農薬散布',law:'農薬取締法',to:'市区町村農業委員会・都道府県農業改良普及センター',detail:'農薬の適正使用義務あり。散布前に近隣農家・住民へ周知。',deadline:'散布前（余裕をもって）',url:'https://www.maff.go.jp/j/nouyaku/',cityDept:'農業委員会 農薬散布',links:[sLink(city+' 農業委員会 電話番号',city+' 農業委員会')],reqKeys:['agri']});}
 
   // ── 飛行場所の種別ごとの申請先 ──
 
@@ -1357,6 +1394,7 @@ function analyze(){
       detail:'公有地は自治体ごとに管理部署が異なります。土木課・建設課・都市計画課・財産管理課などに問い合わせ、使用許可申請が必要です。',
       deadline:'飛行2〜4週間前（自治体により異なる）',
       url:'https://www.j-lis.go.jp/',
+      cityDept:'土木課 財産管理課 ドローン 飛行許可',
       links:[sLink(city+' 役所 土木課 ドローン 飛行 許可',city+' 役所 土木課'),
              sLink(city+' 公有地 使用許可 申請',city+' 公有地 使用許可')],
       reqKeys:[],
@@ -1384,6 +1422,7 @@ function analyze(){
       detail:'観光地は独自の飛行禁止条例や規制を設けている場合が多いです。観光課・観光協会・施設管理事務所に事前確認・許可申請が必要です。',
       deadline:'飛行2〜4週間前',
       url:'https://www.mlit.go.jp/kankocho/',
+      cityDept:'観光課 観光協会 ドローン',
       links:[sLink(city+' 観光課 ドローン 飛行 許可 電話番号',city+' 観光課'),
              sLink(city+' 観光協会 ドローン 問い合わせ',city+' 観光協会')],
       reqKeys:[],
@@ -1398,6 +1437,7 @@ function analyze(){
       detail:'海水浴場は自治体・組合が管理しています。シーズン中は飛行禁止のケースが多数。海上保安部への事前連絡も推奨。漁業権が設定された海域では漁協への確認も必要。',
       deadline:'飛行1〜2週間前',
       url:'https://www.kaiho.mlit.go.jp/',
+      cityDept:'観光課 海水浴場 ドローン',
       links:[sLink(city+' 海水浴場 ドローン 飛行 許可 問い合わせ',city+' 海水浴場管理'),
              sLink(city+' 漁業協同組合 電話番号',city+' 漁業協同組合'),
              sLink(city+' 海上保安署 電話番号','最寄り 海上保安署')],
@@ -1413,6 +1453,7 @@ function analyze(){
       detail:'港湾は国・都道府県・市区町村が管理者となります。漁港は漁港管理者（市区町村）への申請が必要。船舶の航行・荷役作業の妨げにならないよう飛行計画の提出が求められます。',
       deadline:'飛行2〜3週間前',
       url:'https://www.mlit.go.jp/kowan/index.html',
+      cityDept:'港湾課 漁港管理 ドローン',
       links:[sLink(city+' 港湾課 ドローン 飛行 電話番号',city+' 港湾課'),
              sLink(city+' 漁港管理者 問い合わせ',city+' 漁港管理')],
       reqKeys:[],
@@ -1427,6 +1468,7 @@ function analyze(){
       detail:'農地は土地所有者（農家）の承諾が必要です。農作物への影響（農薬の誤散布・鳥獣の追い払い等）がないよう説明し、書面で承諾を取得することを推奨します。',
       deadline:'飛行前（早めに交渉）',
       url:'https://www.maff.go.jp/',
+      cityDept:'農業委員会',
       links:[sLink(city+' 農業委員会 電話番号',city+' 農業委員会')],
       reqKeys:[],
     });
@@ -1454,6 +1496,7 @@ function analyze(){
       detail:'国・都道府県・市区町村指定の文化財周辺は飛行が禁止または制限されています。神社仏閣は宗教法人が管理者であり、個別に許可申請が必要。教育委員会文化財課にも確認してください。',
       deadline:'飛行2〜4週間前（神社仏閣は特に時間がかかる場合あり）',
       url:'https://www.bunka.go.jp/',
+      cityDept:'教育委員会 文化財課 ドローン',
       links:[sLink(city+' 教育委員会 文化財課 電話番号',city+' 文化財課'),
              sLink(city+' 文化財 ドローン 飛行 許可',city+' 文化財 ドローン許可')],
       reqKeys:[],
@@ -1468,6 +1511,7 @@ function analyze(){
       detail:'学校は教育委員会経由での申請が必要な場合があります。病院は患者のプライバシー保護の観点から厳しく制限されています。官公庁は各施設の庶務・総務担当へ確認。',
       deadline:'飛行2〜4週間前',
       url:'https://www.mext.go.jp/',
+      cityDept:'教育委員会 学校 ドローン',
       links:[sLink(city+' 教育委員会 ドローン 飛行 許可',city+' 教育委員会')],
       reqKeys:[],
     });
@@ -1481,6 +1525,7 @@ function analyze(){
       detail:'公営のスポーツ施設は指定管理者制度で運営されていることが多く、指定管理者への申請が必要。民間施設は直接運営会社へ。競技・イベント開催中は原則禁止。',
       deadline:'飛行2〜3週間前',
       url:'https://www.mext.go.jp/sports/',
+      cityDept:'スポーツ振興課 体育施設 ドローン',
       links:[sLink(city+' スポーツ振興課 ドローン 飛行 電話番号',city+' スポーツ振興課'),
              sLink(city+' 体育館 競技場 ドローン 飛行 許可',city+' 競技場 ドローン許可')],
       reqKeys:[],
@@ -1499,6 +1544,23 @@ function analyze(){
       links:[sLink(city+' 警察署 地域課 電話番号',city+' 警察署 地域課')],
       reqKeys:[],
     });
+  }
+
+  /* ── 市区町村役所カード ── */
+  let cityHallHtml='';
+  if(cityHallData){
+    const mapsUrl='https://www.google.com/maps?q='+cityHallData.lat.toFixed(6)+','+cityHallData.lon.toFixed(6);
+    cityHallHtml='<div class="city-hall-card">'
+      +'<div class="city-hall-head">🏛 飛行地の窓口情報: '+esc(cityHallData.city||city)+'</div>'
+      +'<div class="city-hall-body">'
+      +(cityHallData.title?'<div style="margin-bottom:8px;"><strong>'+esc(cityHallData.hall)+'所在地</strong>: '+esc(cityHallData.title)+'</div>':'')
+      +'<div class="search-links">'
+      +'<a href="'+esc(mapsUrl)+'" target="_blank" rel="noopener" class="search-link">📍 地図で開く</a>'
+      +sLink((cityHallData.city||city)+' '+cityHallData.hall+' 公式ホームページ','🌐 公式サイト')
+      +sLink((cityHallData.city||city)+' '+cityHallData.hall+' 住所 電話番号','📞 住所・電話番号')
+      +'</div>'
+      +'</div>'
+      +'</div>';
   }
 
   /* ── HTML生成 ── */
@@ -1565,7 +1627,10 @@ function analyze(){
         + '<div class="sub-to">📮 '+esc(s.to)+'</div>'
         + '<div class="sub-detail">'+esc(s.detail)+'</div>'
         + '<span class="sub-deadline">⏱ '+esc(s.deadline)+'</span>'
-        + ' <a href="'+esc(s.url)+'" target="_blank" rel="noopener" style="font-size:11px;color:var(--accent);text-decoration:none;margin-left:6px;">公式サイト ↗</a>'
+        + (s.cityDept&&city!=='飛行地'
+          ? ' <a href="https://www.google.com/search?q='+encodeURIComponent(city+' '+s.cityDept+' site:lg.jp')+'" target="_blank" rel="noopener" style="font-size:11px;color:var(--green);text-decoration:none;margin-left:6px;font-weight:500;">🌐 '+esc(city)+'の担当課を検索 ↗</a>'
+            
+          : ' <a href="'+esc(s.url)+'" target="_blank" rel="noopener" style="font-size:11px;color:var(--accent);text-decoration:none;margin-left:6px;">公式サイト ↗</a>')
         + linksHtml + '</div></div>';
     });
     subHtml = '<div class="sub-card"><div class="sub-head">申請先一覧</div>'+rows+'</div>';
@@ -1651,13 +1716,18 @@ function analyze(){
     +'<div class="stat-c"><div class="stat-n" style="color:'+(stopN>0?'var(--red)':'var(--green)')+'">'+stopN+'</div><div class="stat-l">⛔ 注意・禁止</div></div>'
     +'</div>'
     +listHtml
+    +cityHallHtml
     +subHtml
     +draftHtml
     +flowHtml
     +'<div class="footnote">※ 本ツールは参考情報です。最新規制は必ず公式で確認してください。<br>'
     +'<a href="https://dips2.mlit.go.jp/" target="_blank" rel="noopener">DIPS2.0</a> | '
     +'<a href="https://www.droneroute.jp/" target="_blank" rel="noopener">Droneroute</a> | '
-    +'<a href="https://www.mlit.go.jp/koku/koku_fr10_000042.html" target="_blank" rel="noopener">国土交通省</a></div>';
+    +'<a href="https://www.mlit.go.jp/koku/koku_fr10_000042.html" target="_blank" rel="noopener">国土交通省</a></div>'
+    +'<div class="log-reflect-bar">'
+    +'<span style="font-size:12px;color:var(--text2);">📓 飛行日・場所・目的・特定飛行種別をチェック結果から飛行記録フォームに自動入力しました</span>'
+    +'<button onclick="goToTab(\'log\')" class="save-btn" style="font-size:12px;padding:5px 16px;flex-shrink:0;">✈ 飛行記録タブへ →</button>'
+    +'</div>';
 
   document.getElementById('result-inner').innerHTML=html;
   document.getElementById('result-area').style.display='block';
@@ -1666,6 +1736,7 @@ function analyze(){
 
   const condList=['night','bvlos','close','crowd','event','drop','road','heavy','restricted','emergency','river','park','agri'].filter(cv).join(', ')||'なし';
   saveHistory({date:new Date().toLocaleString('ja-JP'),address,catKey,catLabel,stopN,warnN,airport:nearestAP?nearestAP.name:'—',conds:condList});
+  prefillFlightLog(flightDate,address,purposeLabel,conds.join('、'));
 }
 
 /* ============================================================
@@ -2101,6 +2172,17 @@ function clearRoute() {
 /* ============================================================
    FLIGHT LOG — 公式様式１準拠
 ============================================================ */
+
+/* チェック結果を飛行記録フォームに反映（空欄のみ上書き） */
+function prefillFlightLog(date,address,purpose,special){
+  const fill=(id,val)=>{if(val){const el=document.getElementById(id);if(el&&!el.value)el.value=val;}};
+  fill('log-date',date);
+  fill('log-from',address);
+  fill('log-to',address);
+  fill('log-purpose',purpose);
+  fill('log-special',special);
+}
+
 function getLogs() {
   try { return JSON.parse(localStorage.getItem(LOG_KEY) || '[]'); } catch(e) { return []; }
 }
@@ -2239,14 +2321,24 @@ function renderLogList() {
     el.innerHTML = '<div style="color:var(--text3);font-size:13px;padding:10px 0;">まだ飛行記録がありません。上のフォームから追加してください。</div>';
     return;
   }
-  el.innerHTML = logs.map(e => {
+  const ctrl = '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap;">'
+    + '<label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:12px;color:var(--text2);">'
+    + '<input type="checkbox" id="log-select-all" onchange="toggleSelectAll(this)"> 全選択</label>'
+    + '<button onclick="exportSelectedXLSX()" class="save-btn" style="font-size:11px;padding:4px 14px;background:rgba(34,211,161,0.15);">📊 選択した記録を様式１出力</button>'
+    + '<button onclick="exportSelectedCSV()" class="save-btn" style="font-size:11px;padding:4px 14px;">📄 選択した記録をCSV出力</button>'
+    + '</div>';
+  el.innerHTML = ctrl + logs.map(e => {
     const incColor = e.incident === 'なし' ? 'var(--green)' : 'var(--red)';
     return '<div class="card" style="margin-bottom:10px;">'
-      + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">'
+      + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;gap:6px;">'
+      + '<label style="display:flex;align-items:center;gap:8px;cursor:pointer;min-width:0;">'
+      + '<input type="checkbox" class="log-select-cb" value="'+e.id+'" onchange="updateSelectAll()">'
       + '<span style="font-size:13px;font-weight:500;color:var(--accent);">'+esc(e.date)+'</span>'
-      + '<div style="display:flex;gap:6px;">'
-      + '<button onclick="openEditModal('+e.id+')" style="background:transparent;border:1px solid var(--border2);color:var(--accent);cursor:pointer;font-size:12px;border-radius:var(--r);padding:2px 10px;">✏️ 編集</button>'
-      + '<button onclick="deleteLog('+e.id+')" style="background:transparent;border:none;color:var(--text3);cursor:pointer;font-size:12px;">🗑 削除</button>'
+      + '</label>'
+      + '<div style="display:flex;gap:5px;flex-shrink:0;">'
+      + '<button onclick="exportOneXLSX('+e.id+')" style="background:rgba(34,211,161,0.1);border:1px solid rgba(34,211,161,.35);color:var(--green);cursor:pointer;font-size:11px;border-radius:var(--r);padding:2px 9px;" title="この1件を様式１出力">📊 出力</button>'
+      + '<button onclick="openEditModal('+e.id+')" style="background:transparent;border:1px solid var(--border2);color:var(--accent);cursor:pointer;font-size:11px;border-radius:var(--r);padding:2px 9px;">✏️ 編集</button>'
+      + '<button onclick="deleteLog('+e.id+')" style="background:transparent;border:none;color:var(--text3);cursor:pointer;font-size:11px;">🗑</button>'
       + '</div>'
       + '</div>'
       + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:12px;color:var(--text2);">'
@@ -2265,6 +2357,32 @@ function renderLogList() {
   }).join('');
 }
 
+function toggleSelectAll(cb) {
+  document.querySelectorAll('.log-select-cb').forEach(el => el.checked = cb.checked);
+}
+function updateSelectAll() {
+  const cbs = [...document.querySelectorAll('.log-select-cb')];
+  const sa = document.getElementById('log-select-all');
+  if (sa) sa.checked = cbs.length > 0 && cbs.every(c => c.checked);
+}
+function getSelectedLogIds() {
+  return [...document.querySelectorAll('.log-select-cb:checked')].map(c => parseInt(c.value));
+}
+function exportSelectedXLSX() {
+  const ids = getSelectedLogIds();
+  if (!ids.length) { alert('出力する記録を選択してください。'); return; }
+  buildXLSX(getLogs().filter(e => ids.includes(e.id)));
+}
+function exportSelectedCSV() {
+  const ids = getSelectedLogIds();
+  if (!ids.length) { alert('出力する記録を選択してください。'); return; }
+  buildCSV(getLogs().filter(e => ids.includes(e.id)));
+}
+function exportOneXLSX(id) {
+  const logs = getLogs().filter(e => e.id === id);
+  buildXLSX(logs);
+}
+
 function logRow(key, val, rawHtml) {
   return '<div style="background:var(--bg3);border-radius:4px;padding:5px 8px;">'
     + '<div style="font-size:10px;color:var(--text3);">'+esc(key)+'</div>'
@@ -2272,170 +2390,118 @@ function logRow(key, val, rawHtml) {
     + '</div>';
 }
 
-/* ── CSV出力 ── */
+/* ── CSV出力（全件） ── */
 function exportLogCSV() {
   const logs = getLogs();
   if (!logs.length) { alert('飛行記録がありません。'); return; }
+  buildCSV(logs);
+}
+
+/* ── CSV共通処理（様式１列順準拠） ── */
+function buildCSV(logs) {
   const headers = [
-    '飛行年月日','操縦者氏名','技能証明書番号（DIPS ID）',
-    '機体登録番号','機体名称',
+    '飛行年月日',
+    '機体識別符号又は登録記号','機体の型式',
+    '操縦者の氏名','技能証明書の番号',
     '離陸場所','離陸時刻','着陸場所','着陸時刻',
-    '飛行時間（分）','製造後総飛行時間',
-    '飛行目的・経路概要','飛行させた特定飛行の種別',
-    '安全に影響のあった事項','不具合・備考',
+    '飛行時間（分）','製造後の総飛行時間',
+    '飛行の目的','飛行させた特定飛行の種別',
+    '安全に影響のあった事項の有無','不具合の概要その他参考となる事項',
   ];
   const rows = logs.map(e => [
-    e.date, e.pilotName, e.pilotCertNo,
+    e.date,
     e.kikai, e.model,
+    e.pilotName, e.pilotCertNo,
     e.from, e.takeoffTime, e.to, e.landingTime,
     e.duration, e.totalTime,
-    e.purpose, e.special,
-    e.incident, e.note,
+    e.purpose, e.special || 'なし',
+    e.incident, e.note || '',
   ]);
   const csv = [headers, ...rows].map(r =>
     r.map(v => '"' + String(v||'').replace(/"/g,'""') + '"').join(',')
   ).join('\r\n');
-  const bom = '\uFEFF';
-  const blob = new Blob([bom + csv], {type:'text/csv;charset=utf-8;'});
+  const blob = new Blob(['﻿' + csv], {type:'text/csv;charset=utf-8;'});
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  a.href = url; a.download = '飛行記録_' + new Date().toISOString().slice(0,10) + '.csv';
+  a.href = url;
+  a.download = '飛行日誌_様式１_' + new Date().toISOString().slice(0,10) + '.csv';
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
 
-/* ── Excel出力（SheetJS・様式１準拠） ── */
+/* ── Excel出力（全件） ── */
 function exportLogXLSX() {
-  if (typeof XLSX === 'undefined') { alert('Excelライブラリの読み込みに失敗しました。インターネット接続を確認してください。'); return; }
   const logs = getLogs();
   if (!logs.length) { alert('飛行記録がありません。'); return; }
+  buildXLSX(logs);
+}
+
+/* ── Excel出力（JSZip + テンプレート直接書き換え） ── */
+async function buildXLSX(logs) {
+  if (typeof JSZip === 'undefined') { alert('JSZipが読み込まれていません。'); return; }
+  if (!logs.length) { alert('出力する記録がありません。'); return; }
+  if (logs.length > 15) {
+    alert('1回の出力は最大15件です（現在' + logs.length + '件）。選択し直してください。');
+    return;
+  }
   const p = getPilot();
 
-  const wb = XLSX.utils.book_new();
+  // テンプレートをJSZipで読み込む
+  const raw = atob(LOG_TEMPLATE_B64);
+  const arr = new Uint8Array(raw.length);
+  for (let i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i);
 
-  /* ── シート1: 様式１ 飛行記録 ── */
-  const ws1Data = [];
-  // タイトル・機体情報ヘッダー
-  ws1Data.push(['無人航空機 飛行日誌（様式１）飛行記録']);
-  ws1Data.push(['航空法施行規則第236条の84に基づく']);
-  ws1Data.push([]);
-  ws1Data.push(['【機体情報】（各ページ冒頭記載事項）']);
-  ws1Data.push(['登録記号', p?.kikai || '']);
-  ws1Data.push(['機種・型式', p?.model || '']);
-  ws1Data.push(['製造者', '']);
-  ws1Data.push(['製造番号', '']);
-  ws1Data.push([]);
-  // 列ヘッダー
-  ws1Data.push([
-    '飛行年月日','操縦者氏名','技能証明書番号',
-    '離陸場所','離陸時刻','着陸場所','着陸時刻',
-    '飛行時間（分）','製造後総飛行時間',
-    '飛行目的・経路概要','特定飛行の種別',
-    '安全影響事項の有無','不具合・備考',
-  ]);
-  // データ行
-  logs.forEach(e => {
-    ws1Data.push([
-      e.date, e.pilotName, e.pilotCertNo,
-      e.from, e.takeoffTime, e.to, e.landingTime,
-      e.duration, e.totalTime,
-      e.purpose, e.special || 'なし',
-      e.incident, e.note || '',
-    ]);
+  let zip, xml;
+  try {
+    zip = await JSZip.loadAsync(arr);
+    xml = await zip.file('xl/worksheets/sheet1.xml').async('string');
+  } catch(e) { alert('テンプレート読込エラー: ' + e.message); return; }
+
+  // XMLエスケープ（改行は&#10;）
+  const ex = s => String(s || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/\n/g, '&#10;');
+
+  // 空セル <c r="REF" s="NUM"/> に値を挿入（スタイル保持）
+  const fill = (ref, val) => {
+    if (!val && val !== 0) return;
+    const v = ex(String(val));
+    const pat = new RegExp('<c r="' + ref + '" s="([0-9]+)"/>');
+    xml = xml.replace(pat,
+      '<c r="' + ref + '" s="$1" t="inlineStr"><is><t xml:space="preserve">' + v + '</t></is></c>'
+    );
+  };
+
+  // データ行（行5〜19）
+  logs.forEach(function(e, i) {
+    const r = 5 + i;
+    fill('B' + r, e.date);
+    fill('D' + r, e.pilotName + (e.pilotCertNo ? '\n' + e.pilotCertNo : ''));
+    fill('G' + r, e.purpose + (e.special && e.special !== 'なし' ? '\n特定飛行: ' + e.special : ''));
+    fill('H' + r, e.from);
+    fill('I' + r, e.to);
+    fill('L' + r, e.takeoffTime);
+    fill('M' + r, e.landingTime);
+    fill('O' + r, e.duration ? e.duration + '分' : '');
+    fill('P' + r, e.totalTime || '');
+    fill('Q' + r, (e.incident || 'なし') + (e.note ? '\n' + e.note : ''));
   });
 
-  const ws1 = XLSX.utils.aoa_to_sheet(ws1Data);
-  // 列幅設定
-  ws1['!cols'] = [
-    {wch:14},{wch:14},{wch:20},
-    {wch:22},{wch:10},{wch:22},{wch:10},
-    {wch:14},{wch:16},
-    {wch:30},{wch:22},
-    {wch:18},{wch:30},
-  ];
-  // タイトルセル結合
-  ws1['!merges'] = [{s:{r:0,c:0},e:{r:0,c:12}}];
-  XLSX.utils.book_append_sheet(wb, ws1, '様式１_飛行記録');
+  zip.file('xl/worksheets/sheet1.xml', xml);
 
-  /* ── シート2: サマリー ── */
-  const totalMin = logs.reduce((s,e) => s + (e.duration||0), 0);
-  const ws2Data = [
-    ['飛行記録サマリー'],
-    [],
-    ['操縦者氏名', p?.name || ''],
-    ['機体登録番号', p?.kikai || ''],
-    ['機体名称', p?.model || ''],
-    ['保険', p?.ins || ''],
-    [],
-    ['統計'],
-    ['総飛行回数', logs.length + '回'],
-    ['総飛行時間', totalMin + '分（' + Math.floor(totalMin/60) + '時間' + (totalMin%60) + '分）'],
-    ['最終飛行日', logs[0]?.date || ''],
-    ['安全影響事項あり', logs.filter(e=>e.incident==='あり').length + '件'],
-    [],
-    ['出力日時', new Date().toLocaleString('ja-JP')],
-    ['出典', '航空法施行規則第236条の84 / 無人航空機の飛行日誌の取扱要領'],
-  ];
-  const ws2 = XLSX.utils.aoa_to_sheet(ws2Data);
-  ws2['!cols'] = [{wch:22},{wch:30}];
-  XLSX.utils.book_append_sheet(wb, ws2, 'サマリー');
-
-  XLSX.writeFile(wb, '飛行日誌_様式１_' + new Date().toISOString().slice(0,10) + '.xlsx');
-}
-
-/* ============================================================
-   GITHUB バージョンチェック
-   package.json または CHANGELOG.md の先頭バージョンを確認
-============================================================ */
-async function checkLatestVersion() {
-  const el = document.getElementById('update-status');
-  if (!el) return;
-  try {
-    // CHANGELOG.mdの先頭行からバージョンを取得
-    const url = GITHUB_RAW_BASE + 'CHANGELOG.md';
-    const res = await fetch(url, {cache: 'no-cache'});
-    if (!res.ok) throw new Error('fetch failed');
-    const text = await res.text();
-    // ## [x.x.x] の形式で最初に出てくるバージョンを取得
-    const match = text.match(/##\s*\[(\d+\.\d+\.\d+)\]/);
-    if (!match) throw new Error('version not found');
-    const latest = match[1];
-
-    if (latest === APP_VER) {
-      el.textContent = '✓ 最新版です (v' + APP_VER + ')';
-      el.style.color = 'var(--green)';
-    } else {
-      el.innerHTML = '🆕 新しいバージョン v' + esc(latest) + ' があります！'
-        + ' <a href="https://github.com/' + GITHUB_USER + '/' + GITHUB_REPO + '/releases" '
-        + 'target="_blank" rel="noopener" style="color:var(--accent);">更新方法を確認 ↗</a>';
-      el.style.color = 'var(--amber)';
-    }
-  } catch(e) {
-    // バージョンチェック失敗は静かに無視（オフライン時など）
-    el.textContent = '';
-  }
-}
-
-/* ============================================================
-   全データ エクスポート / インポート
-============================================================ */
-function exportAllData() {
-  const data = {
-    exportedAt: new Date().toISOString(),
-    appVersion: APP_VER,
-    pilot:      JSON.parse(localStorage.getItem(PILOT_KEY)  || 'null'),
-    flightLog:  JSON.parse(localStorage.getItem(LOG_KEY)    || '[]'),
-    preflight:  JSON.parse(localStorage.getItem(PF_KEY)     || '{}'),
-    history:    JSON.parse(localStorage.getItem(HIST_KEY)   || '[]'),
-  };
-  const json = JSON.stringify(data, null, 2);
-  const blob = new Blob([json], {type: 'application/json;charset=utf-8;'});
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement('a');
-  a.href     = url;
-  a.download = 'drone_checker_backup_' + new Date().toISOString().slice(0,10) + '.json';
-  document.body.appendChild(a); a.click();
-  document.body.removeChild(a); URL.revokeObjectURL(url);
+  const blob = await zip.generateAsync({ type: 'blob' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = '飛行日誌_様式１_'
+    + (logs.length === 1 ? logs[0].date : new Date().toISOString().slice(0, 10))
+    + '.xlsx';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 }
 
 function importAllData(event) {
@@ -2507,7 +2573,7 @@ function resetAll(){
   pinCircles.forEach(c=>map.removeLayer(c));pinCircles=[];
   clearRoute();
   if(routeMode) toggleRouteMode();
-  geoLat=null;geoLon=null;autoDID=null;nearestAP=null;majorAP=null;currentPref='';currentCity='';
+  geoLat=null;geoLon=null;autoDID=null;nearestAP=null;majorAP=null;currentPref='';currentCity='';cityHallData=null;
   window.scrollTo({top:0,behavior:'smooth'});
 }
 
@@ -2537,6 +2603,16 @@ window.addEventListener('DOMContentLoaded',()=>{
   } catch(e){}
   const today = new Date().toISOString().slice(0,10);
   document.getElementById('log-date').value = today;
+
+  // デフォルト値設定
+  document.getElementById('altitude').value = '50';
+  document.getElementById('purpose').value = 'photo';
+  const pad = n => String(n).padStart(2,'0');
+  const fd = new Date();
+  fd.setDate(fd.getDate() + 14); // 2週間後
+  document.getElementById('flight-date').value =
+    fd.getFullYear()+'-'+pad(fd.getMonth()+1)+'-'+pad(fd.getDate())+'T12:00';
+  updateStepGuide();
 
   // 飛行時間の自動計算（追加フォーム）
   ['log-takeoff-time','log-landing-time'].forEach(id => {
