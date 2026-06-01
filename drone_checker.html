@@ -587,6 +587,18 @@ hr.div{border:none;border-top:1px solid var(--border);margin:18px 0;}
       <div class="chk-item" data-id="drone-check" onclick="toggleChk(this)"><div class="chk-box">✓</div><div class="chk-label">ドローン検定 1〜3級</div></div>
       <div class="chk-item" data-id="insurance"   onclick="toggleChk(this)"><div class="chk-box">✓</div><div class="chk-label">第三者損害賠償保険 加入済</div></div>
     </div>
+    <div class="card-title" style="margin-top:12px;">DIPS2.0 包括申請（取得済みの条件に✓）</div>
+    <div class="check-group">
+      <div class="chk-item" data-id="blanket-did"    onclick="toggleChk(this)"><div class="chk-box">✓</div><div class="chk-label">DID上空</div></div>
+      <div class="chk-item" data-id="blanket-ap9k"   onclick="toggleChk(this)"><div class="chk-box">✓</div><div class="chk-label">空港等周辺（9km圏内）</div></div>
+      <div class="chk-item" data-id="blanket-alt150" onclick="toggleChk(this)"><div class="chk-box">✓</div><div class="chk-label">高度150m以上</div></div>
+      <div class="chk-item" data-id="blanket-night"  onclick="toggleChk(this)"><div class="chk-box">✓</div><div class="chk-label">夜間飛行</div></div>
+      <div class="chk-item" data-id="blanket-bvlos"  onclick="toggleChk(this)"><div class="chk-box">✓</div><div class="chk-label">目視外飛行</div></div>
+      <div class="chk-item" data-id="blanket-close"  onclick="toggleChk(this)"><div class="chk-box">✓</div><div class="chk-label">人・物件30m未満</div></div>
+    </div>
+    <div style="font-size:11px;color:var(--text3);margin-top:6px;padding:8px 10px;background:var(--bg3);border-radius:var(--r);line-height:1.7;">
+      💡 <strong>包括申請＝許可の事前取得（運転免許に相当）。</strong>取得済みの条件をチェックしてください。ただし飛行のたびにDIPS2.0で飛行場所・時間・機体を届け出る「飛行計画の通報」は包括申請とは別に毎回必要です。催し物上空・物件投下・第三者上空・25kg以上は包括申請の対象外。
+    </div>
   </div>
 
   <div class="slabel">🤖 DIPS・機体情報</div>
@@ -967,27 +979,98 @@ async function checkLawUpdate() {
    AIRPORTS
 ============================================================ */
 const AIRPORTS=[
-  {name:'新千歳空港',          lat:42.7752,lon:141.6922,major:true},
-  {name:'成田国際空港',        lat:35.7647,lon:140.3864,major:true},
-  {name:'東京国際空港（羽田）',lat:35.5494,lon:139.7798,major:true},
-  {name:'中部国際空港',        lat:34.8584,lon:136.8050,major:true},
-  {name:'関西国際空港',        lat:34.4273,lon:135.2440,major:true},
-  {name:'大阪国際空港（伊丹）',lat:34.7855,lon:135.4380,major:true},
-  {name:'福岡空港',            lat:33.5858,lon:130.4511,major:true},
-  {name:'那覇空港',            lat:26.1958,lon:127.6460,major:true},
-  {name:'仙台空港',lat:38.1397,lon:140.9170,major:false},{name:'新潟空港',lat:37.9558,lon:139.1122,major:false},
-  {name:'広島空港',lat:34.4361,lon:132.9194,major:false},{name:'高松空港',lat:34.2141,lon:134.0158,major:false},
-  {name:'松山空港',lat:33.8272,lon:132.6994,major:false},{name:'熊本空港',lat:32.8373,lon:130.8553,major:false},
-  {name:'鹿児島空港',lat:31.8034,lon:130.7194,major:false},{name:'長崎空港',lat:32.9169,lon:129.9144,major:false},
-  {name:'大分空港',lat:33.4794,lon:131.7369,major:false},{name:'宮崎空港',lat:31.8772,lon:131.4483,major:false},
-  {name:'旭川空港',lat:43.6708,lon:142.4475,major:false},{name:'函館空港',lat:41.7700,lon:140.8219,major:false},
-  {name:'秋田空港',lat:39.6153,lon:140.2189,major:false},{name:'山形空港',lat:38.4119,lon:140.3714,major:false},
-  {name:'福島空港',lat:37.2275,lon:140.4311,major:false},{name:'茨城空港',lat:36.1811,lon:140.4153,major:false},
-  {name:'小松空港',lat:36.3939,lon:136.4069,major:false},{name:'富山空港',lat:36.6483,lon:137.1875,major:false},
-  {name:'静岡空港',lat:34.7961,lon:138.1894,major:false},{name:'神戸空港',lat:34.6328,lon:135.2233,major:false},
-  {name:'岡山空港',lat:34.7569,lon:133.8547,major:false},{name:'山口宇部空港',lat:33.9300,lon:131.2789,major:false},
-  {name:'高知龍馬空港',lat:33.5464,lon:133.6692,major:false},{name:'徳島阿波おどり空港',lat:34.1303,lon:134.6064,major:false},
-  {name:'石垣空港',lat:24.3964,lon:124.1542,major:false},{name:'宮古空港',lat:24.7828,lon:125.2947,major:false},
+  // ── 特定重要拠点（large/拠点空港・小型無人機等飛行禁止法対象）──
+  {name:'新千歳空港',           lat:42.7752,lon:141.6922,major:true},
+  {name:'成田国際空港',         lat:35.7647,lon:140.3864,major:true},
+  {name:'東京国際空港（羽田）', lat:35.5494,lon:139.7798,major:true},
+  {name:'中部国際空港',         lat:34.8584,lon:136.8050,major:true},
+  {name:'関西国際空港',         lat:34.4273,lon:135.2440,major:true},
+  {name:'大阪国際空港（伊丹）', lat:34.7855,lon:135.4380,major:true},
+  {name:'福岡空港',             lat:33.5858,lon:130.4511,major:true},
+  {name:'那覇空港',             lat:26.1958,lon:127.6460,major:true},
+  // ── 北海道 ──
+  {name:'旭川空港',      lat:43.6708,lon:142.4475,major:false},
+  {name:'丘珠空港（札幌）',lat:43.1183,lon:141.3806,major:false},
+  {name:'函館空港',      lat:41.7700,lon:140.8219,major:false},
+  {name:'帯広空港',      lat:42.7333,lon:143.2169,major:false},
+  {name:'釧路空港',      lat:43.0411,lon:144.1933,major:false},
+  {name:'稚内空港',      lat:45.4042,lon:141.8003,major:false},
+  {name:'紋別空港',      lat:44.3039,lon:143.0808,major:false},
+  {name:'女満別空港',    lat:43.8803,lon:144.1639,major:false},
+  {name:'中標津空港',    lat:43.5771,lon:144.9625,major:false},
+  {name:'利尻空港',      lat:45.1239,lon:141.1944,major:false},
+  {name:'奥尻空港',      lat:42.0722,lon:139.4317,major:false},
+  // ── 東北 ──
+  {name:'青森空港',      lat:40.7336,lon:140.6908,major:false},
+  {name:'三沢空港',      lat:40.7031,lon:141.3678,major:false},
+  {name:'花巻空港',      lat:39.4286,lon:141.1353,major:false},
+  {name:'仙台空港',      lat:38.1397,lon:140.9170,major:false},
+  {name:'秋田空港',      lat:39.6153,lon:140.2189,major:false},
+  {name:'大館能代空港',  lat:40.1933,lon:140.3714,major:false},
+  {name:'庄内空港',      lat:38.8122,lon:139.7872,major:false},
+  {name:'山形空港',      lat:38.4119,lon:140.3714,major:false},
+  {name:'福島空港',      lat:37.2275,lon:140.4311,major:false},
+  // ── 関東・伊豆諸島 ──
+  {name:'茨城空港',      lat:36.1811,lon:140.4153,major:false},
+  {name:'調布飛行場',    lat:35.6697,lon:139.5278,major:false},
+  {name:'大島空港',      lat:34.7822,lon:139.3617,major:false},
+  {name:'新島空港',      lat:34.3698,lon:139.2667,major:false},
+  {name:'神津島空港',    lat:34.1942,lon:139.1283,major:false},
+  {name:'三宅島空港',    lat:34.0733,lon:139.5600,major:false},
+  {name:'八丈島空港',    lat:33.1150,lon:139.7878,major:false},
+  // ── 中部・甲信越 ──
+  {name:'新潟空港',      lat:37.9558,lon:139.1122,major:false},
+  {name:'富山空港',      lat:36.6483,lon:137.1875,major:false},
+  {name:'能登空港',      lat:37.2931,lon:136.9619,major:false},
+  {name:'小松空港',      lat:36.3939,lon:136.4069,major:false},
+  {name:'松本空港',      lat:36.1667,lon:137.9228,major:false},
+  {name:'静岡空港',      lat:34.7961,lon:138.1894,major:false},
+  {name:'名古屋飛行場（小牧）',lat:35.2550,lon:136.9240,major:false},
+  // ── 近畿 ──
+  {name:'神戸空港',      lat:34.6328,lon:135.2233,major:false},
+  {name:'八尾空港',      lat:34.5961,lon:135.5953,major:false},
+  {name:'但馬空港',      lat:35.5478,lon:134.7869,major:false},
+  {name:'南紀白浜空港',  lat:33.6622,lon:135.3636,major:false},
+  // ── 中国・四国 ──
+  {name:'鳥取空港',      lat:35.5308,lon:134.1669,major:false},
+  {name:'出雲縁結び空港',lat:35.4136,lon:132.8869,major:false},
+  {name:'岡山空港',      lat:34.7569,lon:133.8547,major:false},
+  {name:'広島空港',      lat:34.4361,lon:132.9194,major:false},
+  {name:'岩国錦帯橋空港',lat:34.1764,lon:132.2235,major:false},
+  {name:'山口宇部空港',  lat:33.9300,lon:131.2789,major:false},
+  {name:'高松空港',      lat:34.2141,lon:134.0158,major:false},
+  {name:'松山空港',      lat:33.8272,lon:132.6994,major:false},
+  {name:'高知龍馬空港',  lat:33.5464,lon:133.6692,major:false},
+  {name:'徳島阿波おどり空港',lat:34.1303,lon:134.6064,major:false},
+  // ── 九州・対馬・壱岐 ──
+  {name:'北九州空港',    lat:33.8461,lon:131.0350,major:false},
+  {name:'佐賀空港',      lat:33.1492,lon:130.3072,major:false},
+  {name:'長崎空港',      lat:32.9169,lon:129.9144,major:false},
+  {name:'対馬空港',      lat:34.2847,lon:129.3306,major:false},
+  {name:'壱岐空港',      lat:33.7497,lon:129.7850,major:false},
+  {name:'天草空港',      lat:32.4831,lon:130.1583,major:false},
+  {name:'熊本空港',      lat:32.8373,lon:130.8553,major:false},
+  {name:'大分空港',      lat:33.4794,lon:131.7369,major:false},
+  {name:'宮崎空港',      lat:31.8772,lon:131.4483,major:false},
+  {name:'鹿児島空港',    lat:31.8034,lon:130.7194,major:false},
+  {name:'種子島空港',    lat:30.6033,lon:130.9903,major:false},
+  {name:'屋久島空港',    lat:30.3856,lon:130.6589,major:false},
+  // ── 奄美・トカラ以南 ──
+  {name:'奄美空港',      lat:28.4303,lon:129.7125,major:false},
+  {name:'喜界空港',      lat:28.3213,lon:129.9278,major:false},
+  {name:'徳之島空港',    lat:27.8756,lon:128.8803,major:false},
+  {name:'沖永良部空港',  lat:27.4258,lon:128.7014,major:false},
+  {name:'与論空港',      lat:27.0444,lon:128.4019,major:false},
+  // ── 沖縄・離島 ──
+  {name:'久米島空港',    lat:26.3636,lon:126.7769,major:false},
+  {name:'粟国空港',      lat:26.5936,lon:127.2350,major:false},
+  {name:'南大東空港',    lat:25.7947,lon:131.2631,major:false},
+  {name:'北大東空港',    lat:25.9447,lon:131.3133,major:false},
+  {name:'宮古空港',      lat:24.7828,lon:125.2947,major:false},
+  {name:'下地島空港',    lat:24.8280,lon:125.1447,major:false},
+  {name:'石垣空港',      lat:24.3964,lon:124.1542,major:false},
+  {name:'与那国空港',    lat:24.4669,lon:123.0069,major:false},
+  {name:'波照間空港',    lat:24.0580,lon:123.7953,major:false},
 ];
 
 /* ============================================================
@@ -1258,13 +1341,27 @@ async function checkDID(lat,lon){
 function haversine(a,b,c,d){const R=6371000,r=Math.PI/180,dL=(c-a)*r,dN=(d-b)*r;const x=Math.sin(dL/2)**2+Math.cos(a*r)*Math.cos(c*r)*Math.sin(dN/2)**2;return R*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x));}
 function checkAirports(lat,lon){
   const badge=document.getElementById('badge-ap');
-  let closest=null,min=Infinity;
-  AIRPORTS.forEach(ap=>{const d=haversine(lat,lon,ap.lat,ap.lon);if(d<min){min=d;closest={...ap,dist:d};}});
+  let closest=null,minAny=Infinity,closestMajor=null,minMajor=Infinity;
+  AIRPORTS.forEach(ap=>{
+    const d=haversine(lat,lon,ap.lat,ap.lon);
+    if(d<minAny){minAny=d;closest={...ap,dist:d};}
+    if(ap.major&&d<minMajor){minMajor=d;closestMajor={...ap,dist:d};}
+  });
   nearestAP=closest;
-  const km=(min/1000).toFixed(1),m=Math.round(min);
-  if(closest.major&&min<=300){majorAP=closest;badge.className='dbadge db-yes';badge.textContent='🔴 '+closest.name+' 約'+m+'m（300m圏内）';}
-  else if(min<=9000){majorAP=null;badge.className='dbadge db-yes';badge.textContent='⚠ '+closest.name+' 約'+km+'km（9km圏内）';}
-  else{majorAP=null;badge.className='dbadge db-no';badge.textContent='✓ 最寄: '+closest.name+' 約'+km+'km';}
+  // 300m圏の判定は「最寄の大型空港」で行う（最寄全体が小型空港でも大型空港が300m内なら検知）
+  if(closestMajor&&minMajor<=300){
+    majorAP=closestMajor;
+    badge.className='dbadge db-yes';
+    badge.textContent='🔴 '+closestMajor.name+' 約'+Math.round(minMajor)+'m（300m圏内）';
+  }else if(minAny<=9000){
+    majorAP=null;
+    badge.className='dbadge db-yes';
+    badge.textContent='⚠ '+closest.name+' 約'+(minAny/1000).toFixed(1)+'km（9km圏内）';
+  }else{
+    majorAP=null;
+    badge.className='dbadge db-no';
+    badge.textContent='✓ 最寄: '+closest.name+' 約'+(minAny/1000).toFixed(1)+'km';
+  }
 }
 
 /* ============================================================
@@ -1286,6 +1383,10 @@ async function analyze(){
   const hasCert1=p?!!p.chk_cert1:false,hasCert2=p?!!p.chk_cert2:false;
   const hasNight=p?!!p['chk_night-cert']:false,hasBvlos=p?!!p['chk_bvlos-cert']:false;
   const hasIns=p?!!p.chk_insurance:false;
+  const blanketDid=p?!!p['chk_blanket-did']:false,blanketAp9k=p?!!p['chk_blanket-ap9k']:false;
+  const blanketAlt150=p?!!p['chk_blanket-alt150']:false,blanketNight=p?!!p['chk_blanket-night']:false;
+  const blanketBvlos=p?!!p['chk_blanket-bvlos']:false,blanketClose=p?!!p['chk_blanket-close']:false;
+  const hasBlanket=blanketDid||blanketAp9k||blanketAlt150||blanketNight||blanketBvlos||blanketClose;
   const pilotName=p?.name||'';const pilotDips=p?.dips||'';const pilotKikai=p?.kikai||'';
   const pilotModel=p?.model||'';const pilotIns=p?.ins||'';
 
@@ -1323,21 +1424,21 @@ async function analyze(){
   let catKey,catLabel,catDesc;
   if(restricted||emergency){catKey='cng';catLabel='⛔ 飛行禁止・要個別確認';catDesc='特定重要施設・緊急用務空域は原則飛行禁止です。管轄機関への確認が必須です。';}
   else if(crowd){catKey='c3';catLabel='カテゴリー Ⅲ（レベル4相当）';catDesc='第三者上空・立入管理なし飛行。一等資格＋第一種機体認証＋国交大臣許可が必要です。';}
-  else if(inAP9k||event||drop||heavy||above150||agri){catKey='c2a';catLabel='カテゴリー ⅡA';catDesc='資格の有無に関わらず個別の許可・承認申請が必須です（DIPS2.0）。';}
-  else if(isSpecial||inMaj300||river||park){catKey='c2b';catLabel='カテゴリー ⅡB / ⅡA';catDesc='特定飛行に該当します。DIPS2.0での許可・承認申請が必要です。';}
-  else{catKey='c1';catLabel='カテゴリー Ⅰ';catDesc='特定飛行に該当しません。申請不要ですが機体登録とルール遵守は必須です。';}
+  else if(inAP9k||event||drop||heavy||above150||agri){catKey='c2a';catLabel='カテゴリー ⅡA';{const _c2aCov=(!inAP9k||blanketAp9k)&&(!above150||blanketAlt150)&&!event&&!drop&&!heavy&&!agri;catDesc=_c2aCov?'特定飛行（ⅡA）に該当します。航空法申請は包括申請で対応済みです（飛行計画の通報は毎回必要）。':'資格の有無に関わらず個別の許可・承認申請が必須です（DIPS2.0）。';}}
+  else if(isSpecial||inMaj300||river||park){catKey='c2b';catLabel='カテゴリー ⅡB / ⅡA';{const _c2bCov=(!did||blanketDid)&&(!night||blanketNight)&&(!bvlos||blanketBvlos)&&(!close||blanketClose);catDesc=_c2bCov?'特定飛行に該当します。航空法の許可・承認申請は包括申請で対応済みです（飛行計画の通報は毎回必要）。':'特定飛行に該当します。DIPS2.0での許可・承認申請が必要です。';}}
+  else{catKey='c1';catLabel='カテゴリー Ⅰ';catDesc='特定飛行に該当しません。DIPS許可申請・飛行計画通報の法的義務はありませんが機体登録とルール遵守は必須です。飛行計画の事前登録を習慣化することを推奨します。';}
 
   /* チェックリスト */
   const reqs=[];
   reqs.push({t:'ok',key:'reg',title:'機体登録（全飛行必須）',detail:'100g以上すべての機体が対象。DIPS2.0で登録し機体に登録記号を表示する。未登録は罰則あり。'});
   reqs.push({t:'ok',key:'airspace',title:'飛行前の空域確認（全飛行必須）',detail:'DIPS2.0またはDroneroute・地理院地図で緊急用務空域・飛行禁止空域を飛行直前に確認する。'});
-  if(did){reqs.push(hasCert2||hasCert1?{t:'warn',key:'did',title:'DID上空：DIPS2.0で許可申請',detail:'二等（または一等）資格を保有しているため申請要件は満たします。飛行10営業日前までに申請。'}:{t:'stop',key:'did',title:'DID上空：DIPS2.0で許可申請＋資格確認要',detail:'飛行10営業日前までに申請必須。技能証明書を添付すること。'});}
+  if(did){reqs.push(blanketDid?{t:'ok',key:'did',title:'DID上空：包括申請で対応済み ✓',detail:'包括申請にDID上空が含まれていれば個別申請は不要です。飛行の都度DIPS2.0で飛行計画を通報してください。'}:hasCert2||hasCert1?{t:'warn',key:'did',title:'DID上空：DIPS2.0で許可申請',detail:'二等（または一等）資格を保有しているため申請要件は満たします。飛行10営業日前までに申請。'}:{t:'stop',key:'did',title:'DID上空：DIPS2.0で許可申請＋資格確認要',detail:'飛行10営業日前までに申請必須。技能証明書を添付すること。'});}
   if(inMaj300&&majorAP){reqs.push({t:'stop',key:'major300',title:majorAP.name+' 300m圏内：小型無人機等飛行禁止法の追加手続き',detail:'①空港管理者の同意取得 ②都道府県公安委員会への事前通報が必要（航空法申請とは別）。約'+Math.round(majorAP.dist)+'m地点。'});}
-  if(inAP9k&&nearestAP){reqs.push({t:'warn',key:'ap9k',title:nearestAP.name+' 9km圏内：DIPS2.0で許可申請（ⅡA）',detail:'空港から約'+(nearestAP.dist/1000).toFixed(1)+'km。空港事務所への事前連絡・調整も必要。飛行10営業日前まで。'});}
-  if(above150){reqs.push({t:'warn',key:'alt150',title:'高度'+alt+'m：150m以上は許可申請（ⅡA）',detail:'有人航空機との空域調整も必要。申請書に飛行経路図・最高高度を明記すること。'});}
-  if(night){reqs.push(hasNight&&(hasCert2||hasCert1)?{t:'ok',key:'night',title:'夜間飛行：夜間限定解除保有のため対応可 ✓',detail:'灯火の装備と飛行マニュアルへの夜間手順記載が必要。DID・空港圏内の場合は別途申請も必要。'}:{t:'warn',key:'night',title:'夜間飛行：DIPS2.0で承認申請が必要',detail:'夜間限定解除または個別承認申請が必要。'});}
-  if(bvlos){reqs.push(hasBvlos&&(hasCert2||hasCert1)?{t:'ok',key:'bvlos',title:'目視外飛行：目視外限定解除保有のため対応可 ✓',detail:'第三者が立ち入る可能性がある経路では立入管理措置が必要。'}:{t:'warn',key:'bvlos',title:'目視外飛行：DIPS2.0で承認申請が必要',detail:'目視外限定解除または個別承認申請が必要。'});}
-  if(close){reqs.push({t:'warn',key:'close',title:'人・物件30m未満：DIPS2.0で承認申請',detail:'補助者の配置と立入管理措置が前提。'});}
+  if(inAP9k&&nearestAP){reqs.push(blanketAp9k?{t:'ok',key:'ap9k',title:nearestAP.name+' 9km圏内：包括申請で対応済み ✓',detail:'包括申請に空港周辺が含まれていれば個別申請は不要です。飛行前に飛行計画の通報を忘れずに。'}:{t:'warn',key:'ap9k',title:nearestAP.name+' 9km圏内：DIPS2.0で許可申請（ⅡA）',detail:'空港から約'+(nearestAP.dist/1000).toFixed(1)+'km。空港事務所への事前連絡・調整も必要。飛行10営業日前まで。'});}
+  if(above150){reqs.push(blanketAlt150?{t:'ok',key:'alt150',title:'高度'+alt+'m：包括申請で対応済み ✓',detail:'包括申請に150m以上の飛行が含まれていれば個別申請は不要です。飛行計画の通報を実施してください。'}:{t:'warn',key:'alt150',title:'高度'+alt+'m：150m以上は許可申請（ⅡA）',detail:'有人航空機との空域調整も必要。申請書に飛行経路図・最高高度を明記すること。'});}
+  if(night){reqs.push(blanketNight?{t:'ok',key:'night',title:'夜間飛行：包括申請で対応済み ✓',detail:'包括申請に夜間飛行が含まれていれば個別承認申請は不要です。灯火の装備と飛行マニュアルへの夜間手順記載は引き続き必要。'}:hasNight&&(hasCert2||hasCert1)?{t:'ok',key:'night',title:'夜間飛行：夜間限定解除保有のため対応可 ✓',detail:'灯火の装備と飛行マニュアルへの夜間手順記載が必要。DID・空港圏内の場合は別途申請も必要。'}:{t:'warn',key:'night',title:'夜間飛行：DIPS2.0で承認申請が必要',detail:'夜間限定解除または個別承認申請が必要。'});}
+  if(bvlos){reqs.push(blanketBvlos?{t:'ok',key:'bvlos',title:'目視外飛行：包括申請で対応済み ✓',detail:'包括申請に目視外飛行が含まれていれば個別承認申請は不要です。第三者が立ち入る可能性がある経路では立入管理措置が必要。'}:hasBvlos&&(hasCert2||hasCert1)?{t:'ok',key:'bvlos',title:'目視外飛行：目視外限定解除保有のため対応可 ✓',detail:'第三者が立ち入る可能性がある経路では立入管理措置が必要。'}:{t:'warn',key:'bvlos',title:'目視外飛行：DIPS2.0で承認申請が必要',detail:'目視外限定解除または個別承認申請が必要。'});}
+  if(close){reqs.push(blanketClose?{t:'ok',key:'close',title:'人・物件30m未満：包括申請で対応済み ✓',detail:'包括申請に人・物件30m未満の飛行が含まれていれば個別承認申請は不要です。補助者の配置と立入管理措置は引き続き必要。'}:{t:'warn',key:'close',title:'人・物件30m未満：DIPS2.0で承認申請',detail:'補助者の配置と立入管理措置が前提。'});}
   if(crowd){reqs.push({t:'stop',key:'crowd',title:'第三者上空（立入管理なし）：カテゴリーⅢ — 一等資格が必要',detail:'二等資格では原則不可。一等操縦士＋第一種機体認証＋国土交通大臣の許可が必要。'});}
   if(event){reqs.push({t:'stop',key:'event',title:'催し物上空：カテゴリーⅡA 個別許可申請（必須）',detail:'主催者の承諾書類・立入管理計画を含む申請書をDIPS2.0で提出。飛行10営業日前まで。'});}
   if(drop){reqs.push({t:'stop',key:'drop',title:'物件投下・危険物輸送：カテゴリーⅡA 個別許可申請',detail:'農薬散布含む。品目ごとの特定飛行マニュアル作成・提出が必要。'});}
@@ -1349,7 +1450,9 @@ async function analyze(){
   if(river){reqs.push({t:'warn',key:'river',title:'河川・湖沼・海岸：管理者への事前確認',detail:'一級河川は国交省河川事務所、二級河川は都道府県、海上は海上保安部へ事前確認が必要。'});}
   if(park){reqs.push({t:'warn',key:'park',title:'公園・国立公園：公園管理者への許可申請',detail:'都市公園は各自治体公園管理事務所、国立公園は環境省または都道府県自然保護課へ。'});}
   if(!hasIns&&isSpecial){reqs.push({t:'warn',key:'ins',title:'第三者損害賠償保険：加入を強く推奨',detail:'申請時に加入状況の記載を求められる場合があります。'});}
-  reqs.push({t:'ok',key:'notif',title:'飛行計画の通報（全飛行必須）',detail:'DIPS2.0で飛行計画を登録・通報。特定飛行の場合は飛行前日〜当日に通報を完了させること。'});
+  reqs.push(catKey==='c1'
+    ? {t:'ok',key:'notif',title:'飛行計画の通報（カテゴリーⅠは任意・推奨）',detail:'カテゴリーⅠ飛行では法令上の通報義務はありません。ただし飛行前にDIPS2.0で飛行計画（場所・時間・機体）を登録する習慣化を推奨します。'}
+    : {t:'ok',key:'notif',title:'飛行計画の通報（特定飛行は必須）',detail:'飛行前日〜当日にDIPS2.0で飛行場所・飛行時間帯・機体を登録して通報を完了させること。包括申請（許可の事前取得）とは別の手続きです。包括申請済みの場合も毎回の飛行ごとに通報が必要。'});
   reqs.push({t:'ok',key:'logbook',title:'飛行記録の作成・保存（全飛行必須）',detail:'飛行日時・場所・操縦者・機体番号・飛行時間・異常有無を毎回記録し一定期間保存すること。'});
 
   // 飛行場所の種別ごとの確認事項
@@ -1372,8 +1475,12 @@ async function analyze(){
   function sLink(q,lbl){const u='https://www.google.com/search?q='+encodeURIComponent(q);const dl=lbl.replace('（飛行地）','').trim();return '<a href="'+esc(u)+'" target="_blank" rel="noopener" class="search-link">🔍 '+esc(dl||lbl)+'</a>';}
   const subs=[];
   if(did||inAP9k||above150||night||bvlos||close||event||drop||heavy||crowd||agri){
-    const rk=['did','ap9k','alt150','night','bvlos','close','event','drop','heavy','crowd','agri'].filter(k=>reqs.some(r=>r.key===k));
-    subs.push({reason:'航空法に基づく特定飛行',law:'航空法 第132条の85・第132条の86',to:'国土交通省（DIPS2.0）',detail:'飛行開始の10営業日前（土日祝除く）までにオンライン申請。',deadline:'飛行10営業日前まで',url:'https://dips2.mlit.go.jp/',links:[],reqKeys:rk});
+    const _bkMap={did:blanketDid,ap9k:blanketAp9k,alt150:blanketAlt150,night:blanketNight,bvlos:blanketBvlos,close:blanketClose};
+    const _bkIds=['did','ap9k','alt150','night','bvlos','close'],_nbIds=['event','drop','heavy','crowd','agri'];
+    const _covPK=_bkIds.filter(k=>reqs.some(r=>r.key===k)&&_bkMap[k]);
+    const _indPK=[..._bkIds.filter(k=>reqs.some(r=>r.key===k)&&!_bkMap[k]),..._nbIds.filter(k=>reqs.some(r=>r.key===k))];
+    if(_covPK.length>0)subs.push({reason:'航空法に基づく特定飛行（包括申請取得済み）',law:'航空法 第132条の85・第132条の86',to:'国土交通省（DIPS2.0）— 飛行計画の通報（毎回必要）',detail:'【包括申請≠飛行計画】包括申請（=許可・承認の事前取得）が完了しているため個別の許可申請は不要です。ただし飛行のたびに、DIPS2.0で「飛行計画」（飛行場所・飛行時間・機体）を登録して通報することは別途必要です。包括申請の有効期間・対象条件も事前に確認してください。',deadline:'飛行前日〜当日（飛行計画通報）',url:'https://dips2.mlit.go.jp/',links:[],reqKeys:_covPK});
+    if(_indPK.length>0)subs.push({reason:_covPK.length>0?'航空法に基づく特定飛行（包括申請の対象外—個別申請必要）':'航空法に基づく特定飛行',law:'航空法 第132条の85・第132条の86',to:'国土交通省（DIPS2.0）',detail:_covPK.length>0?'催し物上空・物件投下・第三者上空（Ⅲ）・25kg以上の機体または包括申請に含まれない条件は個別の許可・承認申請が必要です。飛行10営業日前までに申請してください。':'飛行開始の10営業日前（土日祝除く）までにオンライン申請。',deadline:'飛行10営業日前まで',url:'https://dips2.mlit.go.jp/',links:[],reqKeys:_indPK});
   }
   if(inMaj300&&majorAP){
     subs.push({reason:majorAP.name+'周辺300m圏内の飛行',law:'小型無人機等飛行禁止法 第2条・第9条',to:'都道府県公安委員会（警察）＋空港管理者',detail:'①管轄警察本部または空港警察署へ通報 ②空港管理者の同意書を取得。',deadline:'飛行前まで（余裕をもって）',url:'https://www.npa.go.jp/',links:[sLink(city+' 警察署 電話番号',city+' 警察署'),sLink(majorAP.name+' 空港管理者 問い合わせ','空港管理者')],reqKeys:['major300']});
@@ -1656,6 +1763,7 @@ async function analyze(){
   if(hasCert2)certList.push('二等無人航空機操縦士');
   if(hasNight)certList.push('夜間飛行限定解除');
   if(hasBvlos)certList.push('目視外飛行限定解除');
+  if(hasBlanket){const _bc=[];if(blanketDid)_bc.push('DID');if(blanketAp9k)_bc.push('空港周辺');if(blanketAlt150)_bc.push('150m以上');if(blanketNight)_bc.push('夜間');if(blanketBvlos)_bc.push('目視外');if(blanketClose)_bc.push('30m未満');certList.push('包括申請済み（'+_bc.join('・')+'）');}
 
   function draftRow(key,val){
     const cls=val?'':'empty';
@@ -1703,7 +1811,22 @@ async function analyze(){
 
   let flowHtml='';
   if(isSpecial){
-    const steps=[['機体登録の確認','DIPS2.0で登録番号を確認。未登録なら先に登録を完了する。'],['飛行空域の事前確認','Droneroute・地理院地図で禁止区域・DID・空港圏を確認する。'],['各申請先への申請','上記「申請先一覧」の期限に従い、各機関へ申請・確認を行う。'],['DIPS2.0で許可・承認申請','飛行開始10営業日前（土日祝除く）までに申請を完了させる。'],['許可書の受領と携帯','すべての許可書を受領したら飛行当日に必ず携帯する。'],['飛行計画の通報','飛行前日〜当日にDIPS2.0で飛行計画を通報する。'],['飛行実施・記録作成','飛行後は記録を作成・保存。事故・重大インシデントは速報義務あり。']];
+    const _hasNonBlanketCond=(did&&!blanketDid)||(inAP9k&&!blanketAp9k)||(above150&&!blanketAlt150)||(night&&!blanketNight)||(bvlos&&!blanketBvlos)||(close&&!blanketClose)||event||drop||heavy||crowd||agri;
+    const steps=hasBlanket&&!_hasNonBlanketCond?[
+      ['機体登録の確認','DIPS2.0で登録番号を確認。未登録なら先に登録を完了する。'],
+      ['飛行空域の事前確認','Droneroute・地理院地図で禁止区域・DID・空港圏を確認する。'],
+      ['各申請先への申請','飛行場所の管理者等、上記「申請先一覧」の期限に従い申請・確認を行う。'],
+      ['DIPS2.0で飛行計画を通報（包括申請とは別・毎回必要）','包括申請は「許可の事前取得」であり、飛行計画は「その都度どこで飛ぶかの届出」です。包括申請の有効期間・対象条件を確認後、飛行前日〜当日にDIPS2.0で飛行場所・飛行時間・機体を登録して通報する。'],
+      ['飛行実施・記録作成','飛行後は記録を作成・保存。事故・重大インシデントは速報義務あり。'],
+    ]:[
+      ['機体登録の確認','DIPS2.0で登録番号を確認。未登録なら先に登録を完了する。'],
+      ['飛行空域の事前確認','Droneroute・地理院地図で禁止区域・DID・空港圏を確認する。'],
+      ['各申請先への申請','上記「申請先一覧」の期限に従い、各機関へ申請・確認を行う。'],
+      ['DIPS2.0で許可・承認申請','飛行開始10営業日前（土日祝除く）までに申請を完了させる。'],
+      ['許可書の受領と携帯','すべての許可書を受領したら飛行当日に必ず携帯する。'],
+      ['DIPS2.0で飛行計画を通報（許可申請とは別・毎回必要）','飛行前日〜当日にDIPS2.0で飛行場所・飛行時間・機体を登録して通報する。上記の許可・承認申請とは別の手続き。'],
+      ['飛行実施・記録作成','飛行後は記録を作成・保存。事故・重大インシデントは速報義務あり。'],
+    ];
     let stepsHtml='';
     steps.forEach(([t,d],i)=>{stepsHtml+='<div class="flow-step"><div class="flow-num">'+(i+1)+'</div><div class="flow-text"><strong>'+esc(t)+'</strong>'+esc(d)+'</div></div>';});
     flowHtml='<div class="flow-card"><div class="slabel">PROCESS — 申請の流れ</div>'+stepsHtml+'</div>';
@@ -1863,7 +1986,7 @@ function getPilot(){try{return JSON.parse(localStorage.getItem(PILOT_KEY)||'null
 function savePilot(){
   const d={};
   ['name','birth','tel','email','addr','dips','kikai','model','weight','ins'].forEach(k=>{d[k]=document.getElementById('p-'+k).value;});
-  ['cert1','cert2','night-cert','bvlos-cert','juida','dpa','drone-check','insurance'].forEach(id=>{
+  ['cert1','cert2','night-cert','bvlos-cert','juida','dpa','drone-check','insurance','blanket-did','blanket-ap9k','blanket-alt150','blanket-night','blanket-bvlos','blanket-close'].forEach(id=>{
     const el=document.querySelector('#tab-pilot [data-id="'+id+'"]');d['chk_'+id]=el?el.classList.contains('on'):false;
   });
   localStorage.setItem(PILOT_KEY,JSON.stringify(d));
@@ -1873,7 +1996,7 @@ function savePilot(){
 function loadPilot(){
   const d=getPilot();if(!d)return;
   ['name','birth','tel','email','addr','dips','kikai','model','weight','ins'].forEach(k=>{const el=document.getElementById('p-'+k);if(el&&d[k]!=null)el.value=d[k];});
-  ['cert1','cert2','night-cert','bvlos-cert','juida','dpa','drone-check','insurance'].forEach(id=>{
+  ['cert1','cert2','night-cert','bvlos-cert','juida','dpa','drone-check','insurance','blanket-did','blanket-ap9k','blanket-alt150','blanket-night','blanket-bvlos','blanket-close'].forEach(id=>{
     const el=document.querySelector('#tab-pilot [data-id="'+id+'"]');if(el&&d['chk_'+id]!==undefined)el.classList.toggle('on',!!d['chk_'+id]);
   });
 }
@@ -1884,6 +2007,7 @@ function renderPilotSummary(){
   if(p.chk_cert1)badges.push('一等操縦士');if(p.chk_cert2)badges.push('二等操縦士');
   if(p['chk_night-cert'])badges.push('夜間限定解除');if(p['chk_bvlos-cert'])badges.push('目視外限定解除');
   if(p.chk_insurance)badges.push('保険加入済');
+  if(['blanket-did','blanket-ap9k','blanket-alt150','blanket-night','blanket-bvlos','blanket-close'].some(id=>p['chk_'+id]))badges.push('包括申請済み');
   box.innerHTML='<div class="pilot-box"><strong>🪪 '+esc(p.name)+'</strong> のプロフィールで確認中<div class="pp-badges">'+badges.map(b=>'<span class="pp-badge">'+esc(b)+'</span>').join('')+'</div></div>';
 }
 
@@ -2484,7 +2608,7 @@ async function buildXLSX(logs) {
     fill('I' + r, e.to);
     fill('L' + r, e.takeoffTime);
     fill('M' + r, e.landingTime);
-    fill('O' + r, e.duration ? e.duration + '分' : '');
+    fill('O' + r, e.duration != null ? e.duration + '分' : '');
     fill('P' + r, e.totalTime || '');
     fill('Q' + r, (e.incident || 'なし') + (e.note ? '\n' + e.note : ''));
   });
@@ -2501,6 +2625,22 @@ async function buildXLSX(logs) {
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function exportAllData() {
+  let pilot = null, flightLog = [], preflight = {}, history = [];
+  try { pilot    = JSON.parse(localStorage.getItem(PILOT_KEY) || 'null'); } catch(e){}
+  try { flightLog= JSON.parse(localStorage.getItem(LOG_KEY)   || '[]');   } catch(e){}
+  try { preflight= JSON.parse(localStorage.getItem(PF_KEY)    || '{}');   } catch(e){}
+  try { history  = JSON.parse(localStorage.getItem(HIST_KEY)  || '[]');   } catch(e){}
+  const data = { exportedAt: new Date().toISOString(), pilot, flightLog, preflight, history };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'drone_checker_backup_' + new Date().toISOString().slice(0,10) + '.json';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
 
@@ -2574,6 +2714,7 @@ function resetAll(){
   clearRoute();
   if(routeMode) toggleRouteMode();
   geoLat=null;geoLon=null;autoDID=null;nearestAP=null;majorAP=null;currentPref='';currentCity='';cityHallData=null;
+  document.getElementById('loc-hint').style.display='none';
   window.scrollTo({top:0,behavior:'smooth'});
 }
 
@@ -2587,7 +2728,8 @@ function autoCalcDuration(takeoffId, landingId, durationId) {
   if (!takeoff || !landing) return;
   const [th, tm] = takeoff.split(':').map(Number);
   const [lh, lm] = landing.split(':').map(Number);
-  const diff = (lh * 60 + lm) - (th * 60 + tm);
+  let diff = (lh * 60 + lm) - (th * 60 + tm);
+  if (diff <= 0) diff += 24 * 60; // 日をまたいだ場合（例: 23:30→00:30）
   if (diff > 0) document.getElementById(durationId).value = diff;
 }
 
@@ -2882,7 +3024,138 @@ const SPOTS = [
   {id:93,name:'指宿・長崎鼻',pref:'鹿児島県',pc:46,lat:31.098,lng:130.587,cat:'海岸',tag:['岬','開聞岳','夕日'],pop:3,diff:'easy',note:'開聞岳を望む薩摩半島南端の岬。DID外で比較的飛ばしやすい。夕日と薩摩富士（開聞岳）の組み合わせが美しい。'},
   // 沖縄
   {id:94,name:'川平湾（石垣島）',pref:'沖縄県',pc:47,lat:24.468,lng:124.145,cat:'海岸',tag:['エメラルドグリーン','珊瑚礁'],pop:5,diff:'medium',note:'日本百景。ガラス底ボートが運航中のため第三者上空飛行に注意。石垣市への事前確認が必要な場合あり。'},
-  {id:95,name:'宮古島・東平安名崎',pref:'沖縄県',pc:47,lat:24.720,lng:125.464,cat:'海岸',tag:['岬','エメラルド','夕日'],pop:5,diff:'easy',note:'宮古島最東端の岬。周囲を海に囲まれた絶景スポット。DID外で比較的飛ばしやすい。灯台と海が美しい。'}
+  {id:95,name:'宮古島・東平安名崎',pref:'沖縄県',pc:47,lat:24.720,lng:125.464,cat:'海岸',tag:['岬','エメラルド','夕日'],pop:5,diff:'easy',note:'宮古島最東端の岬。周囲を海に囲まれた絶景スポット。DID外で比較的飛ばしやすい。灯台と海が美しい。'},
+  // 北海道 追加
+  {id:116,name:'支笏湖',pref:'北海道',pc:1,lat:42.748,lng:141.355,cat:'絶景',tag:['湖','カルデラ','透明度'],pop:4,diff:'medium',note:'日本屈指の透明度を誇るカルデラ湖。支笏洞爺国立公園内のため環境省への申請が必要。湖岸の公道沿いから撮影可能なスポットあり。'},
+  {id:117,name:'積丹半島・神威岬',pref:'北海道',pc:1,lat:43.404,lng:140.468,cat:'海岸',tag:['岬','奇岩','積丹ブルー'],pop:5,diff:'medium',note:'積丹ブルーの海と断崖が美しい景勝地。積丹半島道立自然公園内。波が高い日は強風に注意。遊歩道終点から遠景撮影が一般的。'},
+  {id:118,name:'能取湖（サンゴ草）',pref:'北海道',pc:1,lat:44.016,lng:144.164,cat:'絶景',tag:['湖','サンゴ草','秋'],pop:4,diff:'easy',note:'9月のサンゴ草（アッケシソウ）群生が有名。湖岸は比較的開けており飛行しやすい。DID外の農村・湖岸地帯。網走国立公園周辺エリアは確認を。'},
+  // 青森 追加
+  {id:119,name:'奥入瀬渓流',pref:'青森県',pc:2,lat:40.572,lng:140.889,cat:'絶景',tag:['渓谷','清流','紅葉'],pop:5,diff:'hard',note:'十和田八幡平国立公園の特別保護地区。飛行は事前申請が必要。遊歩道に観光客が多い。紅葉シーズンの雰囲気は格別。'},
+  {id:120,name:'横浜町・菜の花畑',pref:'青森県',pc:2,lat:41.085,lng:141.199,cat:'田園',tag:['菜の花','春','日本最大'],pop:4,diff:'easy',note:'日本最大の菜の花産地。5月の黄色い絨毯が絶景。農地のため地権者・農業委員会への確認が必要。下北半島の農村地帯でDID外が多い。'},
+  // 岩手 追加
+  {id:121,name:'碁石海岸',pref:'岩手県',pc:3,lat:39.064,lng:141.786,cat:'海岸',tag:['奇岩','三陸','岩礁'],pop:3,diff:'easy',note:'三陸復興国立公園の一部。波食洞や巨岩が続く海岸線。人が少なく早朝は飛行しやすい時間帯あり。強風・高波に注意。'},
+  {id:122,name:'猊鼻渓',pref:'岩手県',pc:3,lat:38.952,lng:141.459,cat:'絶景',tag:['渓谷','舟下り','石灰岩'],pop:3,diff:'medium',note:'砂鉄川沿いの石灰岩渓谷。舟下り観光が行われているため第三者上空に注意。渓谷上部の展望地から遠景撮影が現実的。'},
+  // 宮城 追加
+  {id:123,name:'神割崎',pref:'宮城県',pc:4,lat:38.734,lng:141.639,cat:'海岸',tag:['奇岩','三陸','日の出'],pop:3,diff:'easy',note:'巨岩が二つに割れた南三陸の奇景。観光客が少なく飛行しやすい時間帯あり。日の出撮影の穴場。三陸復興国立公園内のため確認推奨。'},
+  {id:124,name:'蔵王温泉・坊平高原',pref:'宮城県',pc:4,lat:38.117,lng:140.469,cat:'絶景',tag:['高原','牧場','スキー場'],pop:3,diff:'medium',note:'山形県との県境の高原地帯。冬季はスキー場、夏は牧場。高原台地から蔵王連峰を望める。施設管理者の許可確認が必要。'},
+  // 秋田 追加
+  {id:125,name:'小安峡',pref:'秋田県',pc:5,lat:39.273,lng:140.628,cat:'絶景',tag:['渓谷','温泉','紅葉'],pop:3,diff:'medium',note:'皆瀬川沿いの温泉渓谷。川岸から湯けむりが立ち上る独特の景観。渓谷上部の展望台周辺から撮影可能。秋の紅葉が見事。'},
+  {id:126,name:'寒風山',pref:'秋田県',pc:5,lat:39.971,lng:140.016,cat:'絶景',tag:['火山地形','展望台','日本海'],pop:3,diff:'easy',note:'男鹿半島の火山地形を一望できる展望台がある山。DID外の農村・草原地帯で飛行しやすい。八郎潟干拓地も遠望できる。'},
+  // 山形 追加
+  {id:127,name:'月山湖（寒河江ダム）',pref:'山形県',pc:6,lat:38.527,lng:140.051,cat:'絶景',tag:['ダム湖','山岳','紅葉'],pop:3,diff:'easy',note:'月山の麓に広がるダム湖。堰堤と周囲の山々の景観が美しい。DID外の農村地帯で飛行しやすい。秋の紅葉が格別。'},
+  {id:128,name:'出羽三山・羽黒山麓農村',pref:'山形県',pc:6,lat:38.685,lng:139.978,cat:'歴史',tag:['神社','杉並木','農村'],pop:3,diff:'medium',note:'山伏の修験道の聖地。羽黒山の杉並木周辺は文化財のため飛行不可。山麓の農村エリアは比較的開けており遠景撮影向き。'},
+  // 福島 追加
+  {id:129,name:'大内宿',pref:'福島県',pc:7,lat:37.336,lng:139.949,cat:'歴史',tag:['宿場町','茅葺き','雪景色'],pop:5,diff:'medium',note:'江戸時代の宿場町の景観が残る重要伝統的建造物群保存地区。集落内の飛行は文化財保護の観点から許可確認必須。冬の雪景色は絶景。'},
+  {id:130,name:'裏磐梯・曽原湖',pref:'福島県',pc:7,lat:37.628,lng:140.001,cat:'絶景',tag:['湖沼','磐梯山','紅葉'],pop:4,diff:'medium',note:'磐梯朝日国立公園内の小湖沼。五色沼の北側に位置し観光客が比較的少ない。湖面に映る磐梯山が美しい。公園規制の確認が必要。'},
+  // 茨城 追加
+  {id:131,name:'鹿島灘・波崎海岸',pref:'茨城県',pc:8,lat:35.905,lng:140.792,cat:'海岸',tag:['砂浜','太平洋','サーフィン'],pop:3,diff:'easy',note:'太平洋に面した広大な砂浜。神栖市の海岸線はDID外のエリアが多く飛行しやすい。風が強い日は機体の安定に注意。'},
+  // 栃木 追加
+  {id:132,name:'日光・戦場ヶ原',pref:'栃木県',pc:9,lat:36.799,lng:139.464,cat:'絶景',tag:['湿原','秋','男体山'],pop:4,diff:'hard',note:'日光国立公園内の高層湿原。特別地域のため飛行申請が必要。湿原と男体山の組み合わせが絶景。早朝の霧が幻想的。'},
+  // 群馬 追加
+  {id:133,name:'尾瀬・鳩待峠周辺農村',pref:'群馬県',pc:10,lat:36.905,lng:139.244,cat:'絶景',tag:['湿原','水芭蕉','高山植物'],pop:5,diff:'hard',note:'尾瀬国立公園。特別保護地区のため許可申請が必要。麓の農村（片品村）は比較的飛行しやすい。'},
+  // 埼玉 追加
+  {id:134,name:'宝登山麓・長瀞農村',pref:'埼玉県',pc:11,lat:36.103,lng:139.085,cat:'田園',tag:['農村','里山','春'],pop:3,diff:'easy',note:'秩父の里山農村地帯。宝登山麓の梅・ロウバイが早春に見頃。長瀞河岸から外れた農村部はDID外で飛行しやすい場所あり。'},
+  // 東京 追加
+  {id:135,name:'御蔵島',pref:'東京都',pc:13,lat:33.872,lng:139.595,cat:'海岸',tag:['島','イルカ','手つかずの自然'],pop:4,diff:'hard',note:'東京から南方約250km。イルカと泳げる島として有名。伊豆諸島の中でも特に手つかずの自然が残る。自然公園規制あり。要事前調査。'},
+  // 新潟 追加
+  {id:136,name:'佐渡島・二ツ亀',pref:'新潟県',pc:15,lat:38.217,lng:138.514,cat:'海岸',tag:['島','奇岩','エメラルド'],pop:4,diff:'medium',note:'佐渡の最北端近くの岩礁と透明な海が絶景。佐渡弥彦米山国定公園内。観光客が少ない時間帯は比較的飛行しやすい。'},
+  {id:137,name:'越後平野・水田農村',pref:'新潟県',pc:15,lat:37.710,lng:138.932,cat:'田園',tag:['棚田','農村','稲'],pop:3,diff:'easy',note:'新潟平野の広大な水田地帯。農業の盛んな農村地帯でDID外エリアが広い。田植え前後の水鏡と後立山連峰の組み合わせが美しい。'},
+  // 富山 追加
+  {id:138,name:'五箇山合掌集落',pref:'富山県',pc:16,lat:36.379,lng:136.897,cat:'歴史',tag:['世界遺産','茅葺き','雪景色'],pop:5,diff:'medium',note:'ユネスコ世界文化遺産。合掌造り集落の上空飛行は地域協議会への確認が必要。冬の雪景色は圧倒的。集落外の農村地帯は比較的飛行しやすい。'},
+  {id:139,name:'立山山麓・常願寺川農村',pref:'富山県',pc:16,lat:36.609,lng:137.361,cat:'田園',tag:['立山連峰','農村','水田'],pop:4,diff:'easy',note:'立山連峰を背景に水田が広がる農村地帯。DID外の農村エリアで飛行しやすい。雄大な北アルプスと水田の絶景撮影スポット。農繁期の配慮が必要。'},
+  // 石川 追加
+  {id:140,name:'見附島（軍艦島）',pref:'石川県',pc:17,lat:37.440,lng:137.086,cat:'海岸',tag:['奇岩','能登','日の出'],pop:4,diff:'easy',note:'軍艦のような形の岩礁が海に浮かぶ能登半島の名所。周辺の海岸はDID外で比較的飛行しやすい。早朝の日の出撮影スポットとして人気。'},
+  {id:141,name:'禄剛崎・珠洲岬',pref:'石川県',pc:17,lat:37.531,lng:137.333,cat:'海岸',tag:['灯台','能登','日の出'],pop:3,diff:'easy',note:'能登半島の最先端近くの灯台。日本海に突き出た岬からの眺めは絶景。農村・漁村地帯でDID外。令和6年能登半島地震からの復旧状況を最新情報で確認のこと。'},
+  // 福井 追加
+  {id:142,name:'三方五湖',pref:'福井県',pc:18,lat:35.556,lng:135.895,cat:'絶景',tag:['湖群','若狭湾','夕日'],pop:4,diff:'medium',note:'5つの湖が連なる若狭湾国定公園内の景勝地。レインボーラインからの俯瞰が有名。各湖の色の違いが美しい。公園規制の確認が必要。'},
+  {id:143,name:'一乗谷朝倉氏遺跡周辺農村',pref:'福井県',pc:18,lat:35.919,lng:136.208,cat:'歴史',tag:['戦国','農村','紅葉'],pop:3,diff:'easy',note:'戦国大名朝倉氏の城下町遺跡。遺跡エリアは文化財保護法の対象。周辺の農村地帯は田園風景が広がりDID外で飛行しやすい。秋の紅葉が美しい。'},
+  // 山梨 追加
+  {id:144,name:'精進湖（子抱き富士）',pref:'山梨県',pc:19,lat:35.476,lng:138.554,cat:'絶景',tag:['富士山','湖','子抱き富士'],pop:4,diff:'medium',note:'富士五湖の中で最も静かな穴場の湖。子抱き富士が見られる唯一の場所。富士箱根伊豆国立公園内のため申請要。山中湖・河口湖より観光客が少ない。'},
+  {id:145,name:'清里高原',pref:'山梨県',pc:19,lat:35.888,lng:138.431,cat:'田園',tag:['高原農業','八ヶ岳','農村'],pop:4,diff:'easy',note:'八ヶ岳連峰を望む標高1100〜1500mの高原。観光地だが農村地帯はDID外で比較的飛行しやすい。南アルプスと八ヶ岳の二つの山並みを同時に撮影できる。'},
+  // 長野 追加
+  {id:146,name:'白馬村・大出公園周辺農村',pref:'長野県',pc:20,lat:36.697,lng:137.861,cat:'絶景',tag:['北アルプス','農村','春'],pop:5,diff:'easy',note:'白馬三山を背景に吊り橋と農村集落が広がる。DID外の農村エリアで飛行しやすい。春の桜と白馬連峰の組み合わせは全国的な人気撮影スポット。'},
+  {id:147,name:'奈良井宿周辺・木曽路農村',pref:'長野県',pc:20,lat:36.049,lng:137.826,cat:'歴史',tag:['宿場町','中山道','江戸'],pop:4,diff:'medium',note:'中山道11宿のうち最も長い宿場町。重要伝統的建造物群保存地区のため集落内飛行は許可確認必須。周辺の木曽農村は比較的飛行しやすい。'},
+  // 岐阜 追加
+  {id:148,name:'白川郷合掌集落周辺',pref:'岐阜県',pc:21,lat:36.257,lng:136.906,cat:'歴史',tag:['世界遺産','茅葺き','雪景色'],pop:5,diff:'medium',note:'ユネスコ世界文化遺産の合掌集落。集落上空の飛行は景観保護のため地域協議会への確認が必須。冬の雪景色が圧倒的人気。周辺農村での飛行は比較的可能。'},
+  {id:149,name:'馬籠宿周辺農村',pref:'岐阜県',pc:21,lat:35.517,lng:137.562,cat:'歴史',tag:['宿場町','棚田','木曽'],pop:3,diff:'easy',note:'中山道の宿場町。宿場の石畳と棚田が織りなす景観。宿場内は文化財保護の確認が必要。周辺の農村地帯は比較的飛行しやすい。'},
+  // 静岡 追加
+  {id:150,name:'寸又峡・夢のつり橋',pref:'静岡県',pc:22,lat:35.062,lng:138.167,cat:'絶景',tag:['エメラルドグリーン','ダム湖','吊り橋'],pop:5,diff:'medium',note:'エメラルドグリーンの夢のつり橋で有名。中部電力の管理区域内のため確認が必要。紅葉シーズンは観光客が多く早朝飛行推奨。'},
+  {id:151,name:'富士川河口・農村',pref:'静岡県',pc:22,lat:35.139,lng:138.659,cat:'田園',tag:['富士山','川','農村'],pop:4,diff:'easy',note:'富士川河口と富士山の組み合わせが美しい。河川敷と農村地帯はDID外エリアあり。茶畑と富士山の構図も人気。'},
+  // 愛知 追加
+  {id:152,name:'佐久島',pref:'愛知県',pc:23,lat:34.759,lng:136.959,cat:'海岸',tag:['島','アート','農村'],pop:3,diff:'easy',note:'愛知県最大の離島でアートの島として知られる。人口が少なくDID外の農村・海岸地帯で飛行しやすい。'},
+  {id:153,name:'香嵐渓（足助）',pref:'愛知県',pc:23,lat:35.130,lng:137.405,cat:'絶景',tag:['紅葉','渓谷','巴川'],pop:5,diff:'medium',note:'東海三県随一の紅葉スポット。11月は観光客が非常に多い。渓谷内は飛行困難だが周辺農村から俯瞰を狙う。早朝推奨。'},
+  // 三重 追加
+  {id:154,name:'英虞湾・賢島',pref:'三重県',pc:24,lat:34.332,lng:136.807,cat:'海岸',tag:['リアス式','真珠','夕日'],pop:4,diff:'medium',note:'真珠養殖で有名な英虞湾のリアス式海岸。伊勢志摩国立公園内のため申請が必要。入り組んだ湾と小島が織りなす美しい風景。'},
+  {id:155,name:'七里御浜・熊野灘',pref:'三重県',pc:24,lat:33.742,lng:136.062,cat:'海岸',tag:['砂浜','熊野灘','世界遺産'],pop:3,diff:'easy',note:'熊野古道沿いの約22kmに続く砂浜。DID外でアクセスしやすい海岸線。ウミガメの産卵地のため産卵期（6〜8月）の飛行は要配慮。'},
+  // 滋賀 追加
+  {id:156,name:'白鬚神社・湖中大鳥居',pref:'滋賀県',pc:25,lat:35.337,lng:136.046,cat:'歴史',tag:['鳥居','琵琶湖','朝日'],pop:5,diff:'medium',note:'琵琶湖に浮かぶ大鳥居と朝日の組み合わせが人気。神社境内は宗教法人への許可確認が必要。周辺の湖岸農村は比較的飛行しやすい。'},
+  {id:157,name:'伊吹山麓農村',pref:'滋賀県',pc:25,lat:35.404,lng:136.416,cat:'田園',tag:['山岳','農村','麦'],pop:3,diff:'easy',note:'伊吹山（標高1377m）を背景に広がる農村地帯。DID外の農村エリアが広く飛行しやすい。季節ごとに表情が変わる田畑と伊吹山のコントラストが美しい。'},
+  // 京都 追加
+  {id:158,name:'和束町・茶畑',pref:'京都府',pc:26,lat:34.817,lng:135.866,cat:'田園',tag:['茶畑','棚田','京都南部'],pop:4,diff:'medium',note:'日本の里100選。急傾斜の茶畑が段々に広がる美しい農村景観。地権者への確認が必要。朝霧が立ちこめる早朝が最も美しい。'},
+  {id:159,name:'亀岡盆地農村',pref:'京都府',pc:26,lat:35.013,lng:135.576,cat:'田園',tag:['農村','霧','保津川'],pop:3,diff:'easy',note:'京都盆地の北西に位置する盆地農村。秋〜冬の朝霧（丹波霧）が美しい。DID外の農村エリアが広い穴場スポット。'},
+  // 大阪 追加
+  {id:160,name:'泉南・みさき公園前海岸',pref:'大阪府',pc:27,lat:34.336,lng:135.167,cat:'海岸',tag:['大阪湾','淡路島','夕日'],pop:3,diff:'easy',note:'大阪府最南端近くの海岸。淡路島と夕日のシルエットが撮影できる。DID外のエリアが広い。関西空港の管制圏から外れる場所の確認が必要。'},
+  {id:161,name:'河内長野・岩湧山麓農村',pref:'大阪府',pc:27,lat:34.441,lng:135.579,cat:'絶景',tag:['ススキ','高原','大阪南部'],pop:3,diff:'easy',note:'大阪府内では珍しい高原的な農村景観。岩湧山山麓の農村地帯はDID外で飛行しやすい穴場スポット。秋のススキ群生が有名。'},
+  // 兵庫 追加
+  {id:162,name:'淡路島・灘黒岩水仙郷',pref:'兵庫県',pc:28,lat:34.228,lng:134.743,cat:'田園',tag:['水仙','海岸','1〜3月'],pop:4,diff:'easy',note:'1〜3月は約500万本の水仙が咲く。海を背景にした黄色の群生が絶景。DID外の農村・海岸地帯で飛行しやすい時間帯あり。'},
+  {id:163,name:'豊岡・玄武洞周辺農村',pref:'兵庫県',pc:28,lat:35.581,lng:134.846,cat:'歴史',tag:['柱状節理','コウノトリ','円山川'],pop:3,diff:'easy',note:'柱状節理が見事な国指定天然記念物の岩壁。コウノトリの郷でもある豊岡市の農村はDID外が多く飛行しやすい。円山川沿いの田園風景も美しい。'},
+  // 奈良 追加
+  {id:164,name:'室生湖・室生寺周辺農村',pref:'奈良県',pc:29,lat:34.511,lng:136.074,cat:'歴史',tag:['ダム湖','農村','紅葉'],pop:3,diff:'easy',note:'宇陀川上流のダム湖と農村地帯。室生寺周辺は文化財保護の確認が必要だが農村部はDID外で飛行しやすい。四季の変化が美しい。'},
+  {id:165,name:'十津川村・渓谷農村',pref:'奈良県',pc:29,lat:34.024,lng:135.673,cat:'絶景',tag:['日本最大の村','渓谷','温泉'],pop:3,diff:'easy',note:'日本最大の村（面積）で世界遺産熊野古道の一部。深い渓谷と清流が続く。人口密度が非常に低くDID外のエリアが広い穴場スポット。'},
+  // 和歌山 追加
+  {id:166,name:'友ヶ島',pref:'和歌山県',pc:30,lat:34.306,lng:135.006,cat:'歴史',tag:['廃要塞','無人島','瀬戸内'],pop:4,diff:'medium',note:'旧日本軍の砲台跡が残る無人島群。自然公園内の確認が必要。廃墟と緑と海の組み合わせが異世界感あり。フェリーでアクセス。'},
+  {id:167,name:'那智勝浦・紀の松島',pref:'和歌山県',pc:30,lat:33.594,lng:135.938,cat:'海岸',tag:['奇岩','熊野灘','島'],pop:3,diff:'easy',note:'熊野灘の入り組んだ岩礁・小島群が続く景勝地。DID外の漁村・海岸地帯で飛行しやすい場所あり。海上保安部への確認推奨。'},
+  // 鳥取 追加
+  {id:168,name:'浦富海岸（岩美町）',pref:'鳥取県',pc:31,lat:35.579,lng:134.348,cat:'海岸',tag:['リアス式','透明度','山陰'],pop:4,diff:'medium',note:'山陰海岸国立公園内の透明度の高いリアス式海岸。入り組んだ岩礁と澄んだ海が美しい。観光シーズン外は人が少なく飛行しやすい時間帯あり。'},
+  {id:169,name:'大山・枡水高原',pref:'鳥取県',pc:31,lat:35.374,lng:133.530,cat:'絶景',tag:['山岳','高原','日本海'],pop:4,diff:'medium',note:'大山の山腹に広がる高原。大山隠岐国立公園内のため許可確認が必要。高原から日本海を望む眺望が絶景。施設管理者への確認も必要。'},
+  // 島根 追加
+  {id:170,name:'稲佐の浜（出雲市）',pref:'島根県',pc:32,lat:35.406,lng:132.666,cat:'歴史',tag:['砂浜','出雲大社','神話'],pop:4,diff:'medium',note:'国譲り神話の舞台となった砂浜。出雲大社から近く観光客が多い。神社仏閣への確認と宗教的な観点での配慮が必要。早朝や夕方の光が美しい。'},
+  {id:171,name:'隠岐・知夫里島牧場',pref:'島根県',pc:32,lat:36.044,lng:133.016,cat:'田園',tag:['島','牧場','赤壁'],pop:3,diff:'medium',note:'隠岐諸島の小さな島。島の至る所で牛が放牧される牧歌的な景観。赤壁（あかかべ）の絶壁が有名。離島のためアクセスに時間がかかるがDID外で飛行しやすい。'},
+  // 岡山 追加
+  {id:172,name:'奥津渓',pref:'岡山県',pc:33,lat:35.180,lng:133.765,cat:'絶景',tag:['渓谷','紅葉','花崗岩'],pop:3,diff:'medium',note:'花崗岩の白い岩盤と清流が美しい渓谷。11月の紅葉シーズンが人気。渓谷上部の展望地や周辺農村から撮影可能。'},
+  {id:173,name:'笠岡干拓地',pref:'岡山県',pc:33,lat:34.498,lng:133.508,cat:'田園',tag:['ひまわり','干拓地','農村'],pop:3,diff:'easy',note:'笠岡湾を干拓した広大な農地。夏のひまわり畑が有名。人口密度が低くDID外のエリアが広い。農繁期の作業の妨げにならない配慮が必要。'},
+  // 広島 追加
+  {id:174,name:'神石高原農村',pref:'広島県',pc:34,lat:34.776,lng:133.261,cat:'田園',tag:['高原農業','牧場','里山'],pop:2,diff:'easy',note:'広島県北東部の農村高原地帯。人口密度が低くDID外の高原農村でドローン飛行しやすい穴場エリア。牧場は私有地のため許可が必要。'},
+  {id:175,name:'大久野島（うさぎ島）',pref:'広島県',pc:34,lat:34.349,lng:132.960,cat:'歴史',tag:['島','ウサギ','廃要塞'],pop:4,diff:'medium',note:'約900匹のウサギが生息する島。旧陸軍の毒ガス製造工場の廃墟も残る。国民休暇村の管理地のため施設管理者への確認が必要。竹原港からフェリーでアクセス。'},
+  // 山口 追加
+  {id:176,name:'元乃隅神社（千本鳥居）',pref:'山口県',pc:35,lat:34.469,lng:131.212,cat:'歴史',tag:['鳥居','日本海','長門'],pop:5,diff:'medium',note:'CNNが選ぶ日本の絶景にも選ばれた千本鳥居と断崖の絶景。神社境内は宗教法人への許可確認が必要。観光客多め。早朝推奨。'},
+  {id:177,name:'萩・菊ヶ浜',pref:'山口県',pc:35,lat:34.408,lng:131.390,cat:'海岸',tag:['白砂','松','萩城址'],pop:3,diff:'easy',note:'萩城址に面する白い砂浜。松並木と日本海の組み合わせが美しい。DID外の海岸線で比較的飛行しやすい。萩市の歴史地区への配慮が必要。'},
+  // 徳島 追加
+  {id:178,name:'阿波土柱',pref:'徳島県',pc:36,lat:34.015,lng:134.337,cat:'絶景',tag:['土柱','奇勝','天然記念物'],pop:3,diff:'easy',note:'雨水による侵食で生まれた世界的にも珍しい土の柱群。国指定天然記念物。周辺は農村地帯でDID外のエリアが多い穴場スポット。'},
+  {id:179,name:'美波町・日和佐海岸',pref:'徳島県',pc:36,lat:33.756,lng:134.559,cat:'海岸',tag:['ウミガメ','砂浜','四国'],pop:3,diff:'easy',note:'アカウミガメの産卵地として有名な砂浜。室戸阿南海岸国定公園内のため確認が必要。産卵期（5〜8月）の夜間飛行は禁止。'},
+  // 香川 追加
+  {id:180,name:'飯野山（讃岐富士）山麓農村',pref:'香川県',pc:37,lat:34.244,lng:133.733,cat:'田園',tag:['讃岐富士','農村','溜池'],pop:3,diff:'easy',note:'丸みを帯びた美しい形の「讃岐富士」と溜池・田園が広がる讃岐平野。飯野山山麓の農村地帯はDID外で比較的飛行しやすい。'},
+  {id:181,name:'坂出・沙弥島',pref:'香川県',pc:37,lat:34.408,lng:133.808,cat:'海岸',tag:['島','瀬戸内海','砂浜'],pop:3,diff:'easy',note:'本土と陸続きになった小島。白砂の浜と松林が瀬戸内の典型的な景観。瀬戸内海国立公園内のため確認が必要。'},
+  // 愛媛 追加
+  {id:182,name:'佐田岬',pref:'愛媛県',pc:38,lat:33.342,lng:132.016,cat:'海岸',tag:['岬','日本最長半島','豊後水道'],pop:3,diff:'easy',note:'日本最長の半島「佐田岬半島」の最先端。豊後水道を挟んで大分県が見える。農漁村地帯でDID外が続く。強風・塩害注意。'},
+  {id:183,name:'面河渓',pref:'愛媛県',pc:38,lat:33.736,lng:133.094,cat:'絶景',tag:['渓谷','西日本最高峰','清流'],pop:3,diff:'medium',note:'石鎚国定公園内の清流渓谷。エメラルドグリーンの流れと巨石群が美しい。渓谷内は飛行困難だが周辺山麓農村から遠景撮影が可能。'},
+  // 高知 追加
+  {id:184,name:'四万十川・入田ヤナギ林',pref:'高知県',pc:39,lat:33.045,lng:132.917,cat:'絶景',tag:['川','柳並木','四万十'],pop:3,diff:'easy',note:'四万十川沿いに広がるヤナギの林が春に新緑で美しい。農村地帯でDID外のエリアが広く飛行しやすい穴場スポット。'},
+  {id:185,name:'足摺岬',pref:'高知県',pc:39,lat:32.729,lng:133.018,cat:'海岸',tag:['岬','太平洋','灯台'],pop:4,diff:'easy',note:'四国最南端の岬。太平洋を一望できる断崖と灯台。足摺宇和海国立公園内のため確認が必要だが農漁村地帯でDID外のエリアあり。'},
+  // 福岡 追加
+  {id:186,name:'夜須高原・三郡山地農村',pref:'福岡県',pc:40,lat:33.575,lng:130.700,cat:'田園',tag:['高原農業','農村','里山'],pop:2,diff:'easy',note:'福岡県嘉穂郡の農村高原地帯。茶畑・野菜畑が広がる丘陵農村でDID外のエリアが多い穴場スポット。'},
+  {id:187,name:'筑前大島',pref:'福岡県',pc:40,lat:33.778,lng:130.400,cat:'海岸',tag:['島','玄界灘','岩礁'],pop:3,diff:'medium',note:'玄界灘に浮かぶ周囲12kmの有人離島。島内はDID外が多く飛行しやすい。波が荒い玄界灘の海岸線が迫力あり。フェリーでアクセス。'},
+  // 佐賀 追加
+  {id:188,name:'呼子・農漁村',pref:'佐賀県',pc:41,lat:33.521,lng:129.859,cat:'海岸',tag:['玄界灘','漁村','リアス'],pop:3,diff:'easy',note:'新鮮なイカで有名な呼子周辺の農漁村地帯。玄界灘を望む農漁村でDID外のエリアが多い。リアス式海岸の複雑な地形が撮影映え。'},
+  {id:189,name:'吉野ヶ里歴史公園周辺農村',pref:'佐賀県',pc:41,lat:33.318,lng:130.424,cat:'歴史',tag:['弥生','農村','国営公園'],pop:3,diff:'easy',note:'弥生時代の環濠集落跡が復元された国営公園。公園内は管理者確認が必要。周辺の農村地帯は佐賀平野の水田が広がりDID外で飛行しやすい場所あり。'},
+  // 長崎 追加
+  {id:190,name:'雲仙・仁田峠',pref:'長崎県',pc:42,lat:32.786,lng:130.274,cat:'絶景',tag:['火山','ミヤマキリシマ','雲仙'],pop:4,diff:'medium',note:'雲仙天草国立公園内の火山性高原。ミヤマキリシマ（5月）と紅葉（11月）が人気。火山地帯のため噴気・強風に注意。国立公園の許可申請が必要。'},
+  {id:191,name:'対馬・豆酘崎周辺',pref:'長崎県',pc:42,lat:34.083,lng:129.218,cat:'海岸',tag:['岬','対馬','大陸'],pop:3,diff:'easy',note:'対馬最南端近くの岬。晴れた日には朝鮮半島が見えることも。対馬は人口密度が非常に低くDID外エリアが広い離島。強風と塩害に注意。'},
+  // 熊本 追加
+  {id:192,name:'天草・牛深ハイヤ大橋周辺',pref:'熊本県',pc:43,lat:32.208,lng:130.018,cat:'海岸',tag:['橋','天草','夕日'],pop:3,diff:'easy',note:'天草最南端近くの橋と海の景観。DID外の農漁村地帯で飛行しやすい。天草五橋や複雑な海岸線が上空から美しい。'},
+  {id:193,name:'五木村渓谷',pref:'熊本県',pc:43,lat:32.491,lng:130.928,cat:'絶景',tag:['渓谷','農村','秘境'],pop:2,diff:'easy',note:'球磨川水系の奥地に位置する秘境の農村。自然の渓谷農村が残る。DID外で飛行しやすい穴場スポット。'},
+  // 大分 追加
+  {id:194,name:'竹田市・岡城跡周辺農村',pref:'大分県',pc:44,lat:32.970,lng:131.400,cat:'歴史',tag:['城跡','荒城の月','農村'],pop:3,diff:'easy',note:'「荒城の月」のモデルとなった山城跡。城跡は文化財保護法の対象。周辺の農村地帯はDID外が多く飛行しやすい。清流・芹川沿いの棚田も美しい。'},
+  {id:195,name:'国東半島・農漁村',pref:'大分県',pc:44,lat:33.524,lng:131.710,cat:'歴史',tag:['六郷満山','農村','磨崖仏'],pop:2,diff:'easy',note:'仏教文化「六郷満山」が根付く半島。磨崖仏・農村・段々畑が続く独特の景観。DID外の農漁村地帯が広く飛行しやすい大分の穴場エリア。'},
+  // 宮崎 追加
+  {id:196,name:'日向市・馬ヶ背断崖',pref:'宮崎県',pc:45,lat:32.467,lng:131.651,cat:'海岸',tag:['柱状節理','断崖','太平洋'],pop:4,diff:'easy',note:'高さ70mの柱状節理の断崖が続く絶景スポット。日向岬の先端部。DID外の農漁村地帯で飛行しやすい。柱状節理の上空と太平洋が絵になる。'},
+  {id:197,name:'青島',pref:'宮崎県',pc:45,lat:31.832,lng:131.467,cat:'海岸',tag:['亜熱帯植物','鬼の洗濯板','日南'],pop:4,diff:'medium',note:'熱帯・亜熱帯植物が生い茂る神秘的な島。周囲の「鬼の洗濯板」（波食棚）が独特の景観。日南海岸国定公園内のため許可確認が必要。'},
+  // 鹿児島 追加
+  {id:198,name:'屋久島・一湊海岸',pref:'鹿児島県',pc:46,lat:30.388,lng:130.569,cat:'海岸',tag:['世界遺産','珊瑚礁','ウミガメ'],pop:4,diff:'hard',note:'ユネスコ世界自然遺産の島。ウミガメの産卵地でもある。屋久島国立公園のため厳格な規制あり。島内での飛行は屋久島町・環境省への事前確認が必須。'},
+  {id:199,name:'奄美大島・土盛海岸',pref:'鹿児島県',pc:46,lat:28.430,lng:129.510,cat:'海岸',tag:['珊瑚礁','エメラルド','世界遺産'],pop:4,diff:'medium',note:'奄美群島国立公園・世界自然遺産エリア近く。透明度の高い海が美しい。世界遺産バッファゾーンの可能性があるため環境省・町役場に事前確認必須。'},
+  // 沖縄 追加
+  {id:200,name:'久米島・アーラ浜',pref:'沖縄県',pc:47,lat:26.336,lng:126.780,cat:'海岸',tag:['ハテの浜','珊瑚礁','砂州'],pop:4,diff:'medium',note:'「ハテの浜」への玄関口となる久米島。エメラルドグリーンの海に浮かぶ砂州が美しい。国立公園規制の確認が必要。'},
+  {id:201,name:'西表島・ピナイサーラの滝周辺',pref:'沖縄県',pc:47,lat:24.430,lng:123.780,cat:'絶景',tag:['滝','マングローブ','世界遺産'],pop:4,diff:'hard',note:'沖縄最大の滝。西表石垣国立公園・世界自然遺産エリア内のため飛行は厳格な規制対象。飛行前に環境省・竹富町に必ず確認を。'}
 ];
 
 let spotsMap = null;
