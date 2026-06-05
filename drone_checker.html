@@ -899,6 +899,11 @@ async function checkLawUpdate() {
       const checkedAt  = status.checked_at || '';
       const savedMlit  = rec.knownMlitDate || '';
 
+      // 取得できた場合は常にver-barに国交省法令更新日を表示
+      if (mlitDate) {
+        document.getElementById('update-status').textContent = '国交省法令更新: ' + mlitDate;
+      }
+
       if (mlitDate && mlitDate !== savedMlit) {
         // 国交省ページの更新日が変わっている
         showLawBanner('alert',
@@ -2377,7 +2382,7 @@ function openEditModal(id) {
   document.getElementById('edit-log-date').value         = log.date        || '';
   document.getElementById('edit-log-takeoff-time').value = log.takeoffTime || '';
   document.getElementById('edit-log-landing-time').value = log.landingTime || '';
-  document.getElementById('edit-log-duration').value     = log.duration    || '';
+  document.getElementById('edit-log-duration').value     = log.duration ?? '';
   document.getElementById('edit-log-from').value         = log.from        || '';
   document.getElementById('edit-log-to').value           = log.to          || '';
   document.getElementById('edit-log-purpose').value      = log.purpose     || '';
