@@ -53,9 +53,10 @@ def print_err(msg):
     print(f"        ✕ {msg}")
 
 def run(cmd, cwd=None, capture=False):
-    """コマンドを実行。失敗時は例外を投げる。"""
+    """コマンドを実行。cmd はリスト推奨（shell=False）。文字列の場合は shell=True。"""
+    use_shell = isinstance(cmd, str)
     result = subprocess.run(
-        cmd, cwd=cwd, shell=True,
+        cmd, cwd=cwd, shell=use_shell,
         capture_output=capture, text=True, encoding="utf-8", errors="replace"
     )
     return result
@@ -64,7 +65,8 @@ def run_or_die(cmd, cwd=None, error_msg="コマンド実行に失敗しました
     result = run(cmd, cwd=cwd, capture=True)
     if result.returncode != 0:
         print_err(error_msg)
-        print(f"        詳細: {result.stderr.strip()}")
+        detail = (result.stderr or result.stdout or "").strip()
+        print(f"        詳細: {detail}")
         abort()
     return result.stdout.strip()
 
@@ -209,13 +211,13 @@ def main():
     # Step 7: git add / commit / push
     print_step(6, total_steps, "ファイルをステージング中...")
     for f in present_files:
-        run_or_die(f'git add "{f}"', cwd=script_dir, error_msg=f"git add {f} に失敗しました")
+        run_or_die(["git", "add", f], cwd=script_dir, error_msg=f"git add {f} に失敗しました")
     print_ok(f"{len(present_files)} ファイルをステージング完了")
 
     print_step(7, total_steps, "コミット＆プッシュ中...")
 
-    # コミット（変更がない場合もallow-emptyで通す）
-    result = run(f'git commit -m "{commit_msg}"', cwd=script_dir, capture=True)
+    # コミット（リスト渡しで特殊文字のインジェクションを防ぐ）
+    result = run(["git", "commit", "-m", commit_msg], cwd=script_dir, capture=True)
     if result.returncode != 0 and "nothing to commit" in result.stdout + result.stderr:
         print_warn("コミットする変更なし（ファイルは最新）")
     elif result.returncode != 0:
