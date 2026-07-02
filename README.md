@@ -22,28 +22,29 @@
 
 | 操作 | Windows | macOS |
 |------|---------|-------|
-| 起動 | `launch.bat` をダブルクリック | `launch.command` を右クリック→開く（初回）|
-| アップデート | `update.bat` をダブルクリック | `update.command` を右クリック→開く（初回）|
+| 起動 | `1_アプリを開く_Win.bat` をダブルクリック | `1_アプリを開く_Mac.command` を右クリック→開く（初回）|
+| 最新版を取得 | `2_GitHubから最新版をダウンロード_Win.bat` | `2_GitHubから最新版をダウンロード_Mac.command` |
+| 変更を保存 | `3_GitHubへアップロード_Win.bat` | `3_GitHubへアップロード_Mac.command` |
 
-アップデートスクリプトは：
-1. 現在のファイルを `.bak` としてバックアップ
-2. GitHubから最新版をダウンロード
-3. ファイルサイズを検証（破損チェック）
-4. ブラウザで起動
+※ アプリは単一HTMLなので、`drone_checker.html` を直接ブラウザで開いてもOK。
 
 ## ファイル構成
 
 ```
 drone-photography/
-├── drone_checker.html   # メインアプリ
-├── launch.bat           # Windows用起動
-├── launch.command       # macOS用起動
-├── update.bat           # Windows用アップデート
-├── update.command       # macOS用アップデート
-├── CHANGELOG.md         # 更新履歴・法令改正対応記録
+├── drone_checker.html                        # メインアプリ（これだけで動く）
+├── 1_アプリを開く_Win.bat / _Mac.command       # 起動
+├── 2_GitHubから最新版をダウンロード_Win.bat / _Mac.command
+├── 3_GitHubへアップロード_Win.bat / _Mac.command
+├── deploy.py                                 # 開発者用デプロイ補助
+├── law_status.json                           # 法令更新チェック用（GitHub経由で参照）
+├── template_b64.txt                          # 飛行記録Excelテンプレート
+├── CHANGELOG.md                              # 更新履歴・法令改正対応記録
 ├── .gitignore
 └── README.md
 ```
+
+> **注意**: 地図表示・Excel出力はCDN（unpkg.com）のライブラリを使うため、**オフライン環境では地図とExcel出力が使えません**。現場で使う場合は事前にオンラインで開いておくか、判定結果を控えておくこと。
 
 ## セキュリティ
 
