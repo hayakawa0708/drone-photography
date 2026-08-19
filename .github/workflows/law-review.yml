@@ -1,0 +1,48 @@
+name: Law status review reminder
+
+on:
+  schedule:
+    - cron: "15 22 * * 0"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-law-status:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Check review age and official baseline
+        run: |
+          python - <<'PY'
+          import json
+          import sys
+          import urllib.request
+          from datetime import date
+
+          status = json.load(open("law_status.json", encoding="utf-8"))
+          checked = date.fromisoformat(status["checked_at"])
+          age = (date.today() - checked).days
+          if age > 35:
+              sys.exit(f"law_status.json is {age} days old. Review official sources and update checked_at.")
+
+          sources = (
+              (status["npa_page_url"], ("令和８年７月14日", "1,000m")),
+              (status["mlit_page_url"], ("無人航空機", "飛行許可")),
+          )
+          for url, markers in sources:
+              request = urllib.request.Request(
+                  url,
+                  headers={"User-Agent": "drone-law-review/1.0", "Accept-Encoding": "identity"},
+              )
+              text = urllib.request.urlopen(request, timeout=20).read().decode("utf-8", "ignore")
+              missing = [marker for marker in markers if marker not in text]
+              if missing:
+                  sys.exit(f"Official page changed or expected text is missing: {url} {missing}")
+          print(f"Law status reviewed {age} days ago; official baseline markers are present.")
+          PY

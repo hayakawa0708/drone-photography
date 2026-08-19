@@ -1,6 +1,10 @@
 {
-  "mlit_last_modified": "2025-12-18",
+  "app_version": "6.3.1",
+  "latest_law_date": "2026-07-14",
+  "app_law_date": "2026-07-14",
+  "mlit_last_modified": "2026-06-30",
+  "checked_at": "2026-08-12",
+  "npa_page_url": "https://www.npa.go.jp/bureau/security/kogatamujinki/",
   "mlit_page_url": "https://www.mlit.go.jp/koku/koku_fr10_000042.html",
-  "checked_at": "2026-05-25",
-  "note": "2025-12-18: 審査要領改正施行（民間資格優遇廃止）。2026-03-24: 小型無人機等飛行禁止法改正案閣議決定（1000m拡大・直罰化、夏ごろ施行見込み）"
+  "note": "2026-07-14: 改正小型無人機等飛行禁止法施行。対象施設とその周辺おおむね1,000mが原則飛行禁止。対象空港を含む正確な指定区域は警察庁・地理院地図で確認する。"
 }

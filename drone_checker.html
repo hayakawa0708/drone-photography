@@ -3,13 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://unpkg.com; style-src 'self' 'unsafe-inline' https://unpkg.com; connect-src https://msearch.gsi.go.jp https://cyberjapandata.gsi.go.jp https://mreversegeocoder.gsi.go.jp https://api.open-meteo.com https://api.github.com https://raw.githubusercontent.com https://www.mlit.go.jp; img-src 'self' data: blob: https://cyberjapandata.gsi.go.jp https://*.tile.openstreetmap.org;">
-<title>ドローン飛行条件チェッカー v6</title>
-<!-- バージョンピン留め済みCDN crossoriginを明示 -->
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
-<script src="https://unpkg.com/xlsx@0.18.5/dist/xlsx.full.min.js" crossorigin=""></script>
-<script src="https://unpkg.com/jszip@3.10.1/dist/jszip.min.js" crossorigin=""></script>
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src https://msearch.gsi.go.jp https://cyberjapandata.gsi.go.jp https://mreversegeocoder.gsi.go.jp https://api.open-meteo.com https://raw.githubusercontent.com; img-src 'self' data: blob: https://cyberjapandata.gsi.go.jp https://*.tile.openstreetmap.org; object-src 'none'; base-uri 'none'; form-action 'none';">
+<title>ドローン飛行条件チェッカー v6.3.1</title>
+<!-- 個人・運航情報を第三者配信スクリプトから分離するため固定版を同梱 -->
+<link rel="stylesheet" href="vendor/leaflet/leaflet.css">
+<script src="vendor/leaflet/leaflet.js"></script>
+<script src="vendor/jszip/jszip.min.js"></script>
 <style>
 :root {
   --bg:#0a0e1a; --bg2:#111827; --bg3:#1a2236;
@@ -55,6 +54,13 @@ body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:14
 .law-banner-body a{color:var(--accent);text-decoration:none;}
 .law-banner-body a:hover{text-decoration:underline;}
 .law-banner-close{background:transparent;border:none;color:var(--text3);cursor:pointer;font-size:16px;padding:0 4px;flex-shrink:0;}
+
+/* ── EXTERNAL COMMUNICATION NOTICE ── */
+.privacy-notice{background:rgba(56,189,248,.07);border:1px solid rgba(56,189,248,.28);border-radius:var(--r);padding:11px 14px;margin-bottom:14px;color:var(--text2);font-size:12px;line-height:1.65;}
+.privacy-notice strong{color:var(--accent);font-weight:700;}
+.privacy-notice ul{margin:6px 0 4px;padding-left:20px;}
+.privacy-notice li{margin:2px 0;}
+.privacy-notice small{display:block;color:var(--text3);font-size:11px;}
 
 /* ── VER BAR ── */
 .ver-bar{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:7px 14px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;}
@@ -107,6 +113,11 @@ body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:14
 .geo-btn:hover{opacity:.8;}
 .geo-result{margin-top:6px;font-size:12px;color:var(--text3);display:none;}
 .geo-result.ok{color:var(--green);} .geo-result.err{color:var(--red);}
+.geo-result.candidates{background:var(--bg3);color:var(--text2);border:1px solid var(--border);border-radius:var(--r);padding:9px 10px;display:block;}
+.geo-candidate-list{display:grid;gap:6px;margin-top:7px;}
+.geo-candidate{width:100%;text-align:left;padding:8px 10px;border-radius:var(--r);border:1px solid var(--border2);background:rgba(56,189,248,.05);color:var(--text);font-family:var(--font);cursor:pointer;}
+.geo-candidate:hover,.geo-candidate:focus{border-color:var(--accent);background:rgba(56,189,248,.11);outline:none;}
+.geo-candidate small{display:block;color:var(--text3);margin-top:2px;}
 
 /* ── DETECT BADGES ── */
 .detect-row{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px;display:none;}
@@ -267,7 +278,7 @@ hr.div{border:none;border-top:1px solid var(--border);margin:18px 0;}
 .btn-cancel{padding:9px 16px;background:transparent;border:1px solid var(--border2);color:var(--text3);border-radius:var(--r);font-size:13px;font-family:var(--font);cursor:pointer;}
 .btn-cancel:hover{color:var(--text);}
 
-/* ── LAW ALERT BANNER (改正案警告用) ── */
+/* ── LAW ALERT BANNER (法令更新警告用) ── */
 .law-alert-bar{background:rgba(248,113,113,0.10);border:1px solid rgba(248,113,113,0.4);border-radius:var(--r);padding:9px 14px;margin-bottom:12px;font-size:12px;color:var(--text2);display:flex;gap:10px;align-items:flex-start;}
 .law-alert-bar strong{color:var(--red);}
 .law-alert-bar a{color:var(--accent);text-decoration:none;}
@@ -378,8 +389,27 @@ hr.div{border:none;border-top:1px solid var(--border);margin:18px 0;}
     <button class="law-banner-close" onclick="dismissLawBanner()" title="閉じる">×</button>
   </div>
 
+  <!-- 機体点検・保険満了日リマインダー（自己入力日と今日の日付を比較・起動時に動的表示） -->
+  <div class="law-banner" id="maint-banner" style="display:none;">
+    <div class="law-banner-icon" id="maint-banner-icon">🔧</div>
+    <div class="law-banner-body" id="maint-banner-body"></div>
+    <button class="law-banner-close" onclick="document.getElementById('maint-banner').style.display='none'" title="閉じる">×</button>
+  </div>
+
+  <div class="privacy-notice" role="note" aria-label="外部通信とデータ保存について">
+    <strong>🔒 外部通信とデータ保存</strong><br>
+    氏名・DIPS ID・機体番号・飛行記録は、このブラウザのlocalStorageだけに保存し、アプリから外部へ送信しません。
+    <ul>
+      <li>住所検索は入力した住所を国土地理院へ送信します。</li>
+      <li>地図・DID判定は表示範囲や選択座標を国土地理院・OpenStreetMapへ送信します。</li>
+      <li>天気取得は選択座標と予定日をOpen-Meteoへ送信します。</li>
+      <li>起動時は個人情報を含めず、公開元からバージョン・法令確認日だけを取得します（AWS版は同じサイト、ローカル版はGitHub）。</li>
+    </ul>
+    <small>外部サービスには通信元IPアドレス等が伝わります。共用PCでは個人・運航情報を保存しないでください。</small>
+  </div>
+
   <div class="ver-bar">
-    <span class="ver-txt">v6.2.0 &nbsp;|&nbsp; 法令基準: <strong>令和6年改正 航空法</strong> &nbsp;|&nbsp; 2026-05-25</span>
+    <span class="ver-txt">v6.3.1 &nbsp;|&nbsp; 法令基準: <strong>令和8年改正 小型無人機等飛行禁止法</strong> &nbsp;|&nbsp; 2026-07-14</span>
     <div style="display:flex;gap:8px;align-items:center;">
       <span id="update-status" style="font-size:11px;color:var(--text3);font-family:var(--mono);"></span>
       <a class="ver-link" href="https://www.mlit.go.jp/koku/koku_fr10_000042.html" target="_blank" rel="noopener">国土交通省 最新情報 ↗</a>
@@ -557,7 +587,7 @@ hr.div{border:none;border-top:1px solid var(--border);margin:18px 0;}
 <!-- ══════════ TAB: PILOT ══════════ -->
 <div id="tab-pilot" class="tab-content">
 <div class="container">
-  <div class="ver-bar"><span class="ver-txt">入力情報はブラウザ内（localStorage）のみに保存。外部送信なし。</span></div>
+  <div class="ver-bar"><span class="ver-txt">個人・運航情報はブラウザ内（localStorage）のみに保存。地図・天気等の外部通信には含めません。</span></div>
 
   <div class="slabel">🪪 パイロット基本情報</div>
   <div class="card">
@@ -620,6 +650,11 @@ hr.div{border:none;border-top:1px solid var(--border);margin:18px 0;}
       <div class="field"><label>機体重量（g）</label><input type="number" id="p-weight" placeholder="例: 249" min="0"></div>
     </div>
     <div class="field"><label>保険会社・証券番号</label><input type="text" id="p-ins" placeholder="例: 〇〇損保 No.XXXXXXXX"></div>
+    <div class="field-row">
+      <div class="field"><label>次回機体点検予定日</label><input type="date" id="p-insp-date"></div>
+      <div class="field"><label>保険の満了日</label><input type="date" id="p-ins-expiry"></div>
+    </div>
+    <div style="font-size:11px;color:var(--text3);margin-top:2px;">💡 任意入力。設定すると期限が近い・過ぎている場合にチェック画面でお知らせします（法定義務ではなく自己管理用のリマインダーです）。</div>
   </div>
 
   <div style="display:flex;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:8px;">
@@ -817,8 +852,8 @@ hr.div{border:none;border-top:1px solid var(--border);margin:18px 0;}
 /* ============================================================
    CONSTANTS
 ============================================================ */
-const APP_VER   = '6.2.0';
-const APP_DATE  = '2026-05-25';
+const APP_VER   = '6.3.1';
+const APP_DATE  = '2026-08-13';
 const PILOT_KEY   = 'drone_pilot_v2';
 const HIST_KEY    = 'drone_history_v4';
 const PF_KEY      = 'drone_preflight_v1';
@@ -828,7 +863,8 @@ const LOG_TEMPLATE_B64 = 'UEsDBBQABgAIAAAAIQBBN4LPbgEAAAQFAAATAAgCW0NvbnRlbnRfVH
 
 
 // アプリの法令情報基準日（法令改正があったら更新する）
-const APP_LAW_DATE = '2025-05-23';
+const APP_LAW_DATE = '2026-07-14';
+const TARGET_FACILITY_BUFFER_METERS = 1000;
 // 無警告で閲覧できる最大日数（この日数を超えたら定期警告）
 const LAW_CHECK_INTERVAL_DAYS = 30;
 
@@ -837,7 +873,55 @@ const GITHUB_USER = 'hayakawa0708';
 const GITHUB_REPO = 'drone-photography';
 const GITHUB_BRANCH = 'main';
 const GITHUB_RAW_BASE = 'https://raw.githubusercontent.com/' + GITHUB_USER + '/' + GITHUB_REPO + '/' + GITHUB_BRANCH + '/';
-const GITHUB_API_BASE = 'https://api.github.com/repos/' + GITHUB_USER + '/' + GITHUB_REPO + '/';
+const IS_LOCAL_APP = location.protocol === 'file:' || ['localhost','127.0.0.1','::1'].includes(location.hostname);
+const STATUS_URL = IS_LOCAL_APP ? GITHUB_RAW_BASE + 'law_status.json' : new URL('law_status.json',location.href).href;
+let remoteStatusPromise = null;
+
+function fetchRemoteStatus() {
+  if (!remoteStatusPromise) {
+    remoteStatusPromise = fetch(STATUS_URL, {cache:'no-cache'})
+      .then(res => {
+        if (!res.ok) throw new Error('status ' + res.status);
+        return res.json();
+      })
+      .catch(error => {
+        remoteStatusPromise = null;
+        throw error;
+      });
+  }
+  return remoteStatusPromise;
+}
+
+function addUpdateStatus(message) {
+  const element = document.getElementById('update-status');
+  if (!element || !message) return;
+  const messages = element.textContent.split(' / ').filter(Boolean);
+  if (!messages.includes(message)) messages.push(message);
+  element.textContent = messages.join(' / ');
+}
+
+function isNewerVersion(candidate, current) {
+  const pattern = /^\d+\.\d+\.\d+$/;
+  if (!pattern.test(candidate || '') || !pattern.test(current || '')) return false;
+  const next = candidate.split('.').map(Number);
+  const installed = current.split('.').map(Number);
+  for (let i = 0; i < 3; i++) {
+    if (next[i] !== installed[i]) return next[i] > installed[i];
+  }
+  return false;
+}
+
+async function checkLatestVersion() {
+  try {
+    const status = await fetchRemoteStatus();
+    const latestVersion = status.app_version || '';
+    if (isNewerVersion(latestVersion, APP_VER)) {
+      addUpdateStatus('最新版 v' + latestVersion + ' あり');
+    }
+  } catch (error) {
+    // オフラインやGitHub障害時も、ローカル機能はそのまま利用する。
+  }
+}
 
 /* ============================================================
    SECURITY: XSS対策
@@ -900,51 +984,55 @@ async function checkLawUpdate() {
   const rec = getLawRecord();
 
   // ── Stage 1: GitHubにlaw_status.jsonがあれば参照 ──
-  // GitHub Actionsで定期的に更新する想定のファイル
-  // フォーマット: { "mlit_last_modified": "2025-05-01", "checked_at": "2025-05-23" }
+  // 週次Actionは状態ファイルの期限切れと公式ページの基準文言を検査する。
+  // 法令内容の判断とchecked_at更新は、人が公式資料を確認して行う。
   try {
-    const url = GITHUB_RAW_BASE + 'law_status.json';
-    const res = await fetch(url, { cache: 'no-cache' });
-    if (res.ok) {
-      const status = await res.json();
-      const mlitDate   = status.mlit_last_modified || '';
-      const checkedAt  = status.checked_at || '';
-      const savedMlit  = rec.knownMlitDate || '';
+    const status = await fetchRemoteStatus();
+    if (status) {
+      const mlitDate      = status.mlit_last_modified || '';
+      const latestLawDate = status.latest_law_date || mlitDate;
+      const checkedAt     = status.checked_at || '';
 
-      // 取得できた場合は常にver-barに国交省法令更新日を表示
-      if (mlitDate) {
-        document.getElementById('update-status').textContent = '国交省法令更新: ' + mlitDate;
+      if (checkedAt) {
+        addUpdateStatus('法令確認日: ' + checkedAt);
       }
 
-      if (mlitDate && mlitDate !== savedMlit) {
-        // 国交省ページの更新日が変わっている
+      // ブラウザ側の既読記録ではなく、アプリ自身の法令基準日と比較する。
+      // アプリが古い間は、閉じても次回起動時に必ず再表示する。
+      if (latestLawDate && latestLawDate > APP_LAW_DATE) {
         showLawBanner('alert',
-          '<strong style="color:var(--red);">⚠ 国土交通省の航空法関連ページが更新されました</strong><br>'
-          + '国交省ページの更新日: <strong>' + esc(mlitDate) + '</strong>　'
+          '<strong style="color:var(--red);">⚠ アプリの法令判定が古くなっています</strong><br>'
+          + '確認済みの最新法令日: <strong>' + esc(latestLawDate) + '</strong>　'
           + '（アプリの法令基準日: ' + APP_LAW_DATE + '）<br>'
-          + '法令・審査要領が改正された可能性があります。飛行前に必ず最新情報を確認してください。<br>'
-          + '<a href="https://www.mlit.go.jp/koku/koku_fr10_000042.html" target="_blank" rel="noopener">国交省 飛行許可・承認手続きページ ↗</a>'
+          + 'このアプリだけで判定せず、飛行前に必ず公式情報を確認してください。<br>'
+          + '<a href="https://www.npa.go.jp/bureau/security/kogatamujinki/" target="_blank" rel="noopener">警察庁 小型無人機等飛行禁止法 ↗</a>'
+          + '　<a href="https://www.mlit.go.jp/koku/koku_fr10_000042.html" target="_blank" rel="noopener">国交省 飛行許可・承認手続き ↗</a>'
           + '　<a href="https://dips2.mlit.go.jp/" target="_blank" rel="noopener">DIPS2.0 ↗</a>'
         );
-        // 新しい更新日を記録
-        rec.knownMlitDate = mlitDate;
-        rec.alertShownAt  = new Date().toISOString();
-        saveLawRecord(rec);
-        return; // Stage 1成功
-      }
-
-      if (mlitDate && mlitDate === savedMlit) {
-        // 変化なし → 何も表示しない
-        saveLawRecord({...rec, lastCheckedAt: new Date().toISOString()});
         return;
       }
+
+      if (checkedAt) {
+        const checked = new Date(checkedAt + 'T00:00:00+09:00');
+        const ageDays = (Date.now() - checked.getTime()) / 86400000;
+        if (!Number.isFinite(checked.getTime()) || ageDays > LAW_CHECK_INTERVAL_DAYS) {
+          showLawBanner('warn',
+            '<strong>法令情報の定期確認期限を過ぎています</strong><br>'
+            + '最終確認日: ' + esc(checkedAt) + '。飛行前に警察庁・国土交通省・DIPS2.0で最新情報を確認してください。'
+          );
+          return;
+        }
+      }
+      saveLawRecord({...rec, lastCheckedAt: new Date().toISOString(), knownMlitDate: mlitDate});
+      return;
     }
   } catch(e) {
     // Stage 1失敗 → Stage 2へ
   }
 
-  // ── Stage 2: GitHubのCHANGELOGで法令改正記録を確認 ──
-  try {
+  // ── Stage 2: ローカル版だけGitHubのCHANGELOGで法令改正記録を確認 ──
+  // 公開版は同一配信元だけを参照し、CloudFrontからGitHubへフォールバックしない。
+  if (IS_LOCAL_APP) try {
     const url = GITHUB_RAW_BASE + 'CHANGELOG.md';
     const res = await fetch(url, { cache: 'no-cache' });
     if (res.ok) {
@@ -1113,7 +1201,7 @@ function initMap(){
     attribution:'DID2020: 国土地理院',
   }).addTo(map);
 
-  // 空港9km圏・300m圏を全空港分描画
+  // 空港9km圏・対象空港の1km簡易目安を描画（正確な指定区域は公式地図で確認）
   AIRPORTS.forEach(ap=>{
     // 9km圏（黄色・細線）
     const c9=L.circle([ap.lat,ap.lon],{
@@ -1126,10 +1214,10 @@ function initMap(){
       interactive:false,
     }).addTo(map);
 
-    // 300m圏（赤・主要8空港のみ）
+    // 1km簡易目安（赤・小型無人機等飛行禁止法の対象8空港のみ）
     if(ap.major){
       const c3=L.circle([ap.lat,ap.lon],{
-        radius:300,
+        radius:TARGET_FACILITY_BUFFER_METERS,
         color:'#f87171',
         weight:2,
         fill:true,
@@ -1166,7 +1254,7 @@ function initMap(){
       '<div style="font-weight:700;color:#38bdf8;margin-bottom:2px;font-size:10px;letter-spacing:.08em;">MAP LEGEND</div>'
       +'<div><span style="display:inline-block;width:14px;height:10px;background:rgba(251,146,60,0.5);border:1px solid #fb923c;border-radius:2px;margin-right:5px;vertical-align:middle;"></span>DID（人口集中地区）</div>'
       +'<div><span style="display:inline-block;width:14px;height:2px;background:#fbbf24;margin-right:5px;vertical-align:middle;"></span>空港 9km圏</div>'
-      +'<div><span style="display:inline-block;width:14px;height:2px;background:#f87171;margin-right:5px;vertical-align:middle;"></span>主要空港 300m圏（⚠改正案で1km拡大予定）</div>'
+      +'<div><span style="display:inline-block;width:14px;height:2px;background:#f87171;margin-right:5px;vertical-align:middle;"></span>対象空港 1km簡易目安（公式地図確認必須）</div>'
       +'<div><span style="display:inline-block;width:10px;height:10px;background:#f87171;border-radius:50%;border:2px solid #fff;margin-right:5px;vertical-align:middle;"></span>飛行地点</div>';
     return div;
   };
@@ -1241,14 +1329,48 @@ async function geocode(){
     if(!res.ok)throw new Error();
     const data=await res.json();
     if(!Array.isArray(data)||!data.length){geoEl.className='geo-result err';geoEl.textContent='❌ 住所が見つかりませんでした。';return;}
-    const[lon,lat]=data[0].geometry.coordinates;
-    const name=data[0].properties?.title||addr;
-    geoEl.className='geo-result ok';
-    geoEl.textContent='✓ '+name+'（緯度:'+lat.toFixed(5)+', 経度:'+lon.toFixed(5)+'）';
-    setLocation(lat,lon);
-    // 住所検索時も市区町村を取得
-    await reverseGeocodeState(lat,lon);
+    showGeocodeCandidates(data.slice(0,5),addr);
   }catch(e){geoEl.className='geo-result err';geoEl.textContent='❌ 検索エラー。インターネット接続を確認してください。';}
+}
+
+function normalizeGeocodeCandidate(item,fallback){
+  const coordinates=item?.geometry?.coordinates;
+  const lon=Number(coordinates?.[0]),lat=Number(coordinates?.[1]);
+  if(!Number.isFinite(lat)||!Number.isFinite(lon)||lat<-90||lat>90||lon<-180||lon>180)return null;
+  const title=String(item?.properties?.title||fallback||'候補地点').slice(0,200);
+  return{title,lat,lon};
+}
+
+function showGeocodeCandidates(data,fallback){
+  const candidates=data.map(item=>normalizeGeocodeCandidate(item,fallback)).filter(Boolean);
+  const geoEl=document.getElementById('geo-result');
+  if(!candidates.length){geoEl.className='geo-result err';geoEl.textContent='❌ 有効な検索候補が見つかりませんでした。';return;}
+  geoEl.className='geo-result candidates';
+  geoEl.replaceChildren();
+  const intro=document.createElement('div');
+  intro.textContent='候補を確認して、飛行場所を1件選んでください。';
+  geoEl.appendChild(intro);
+  const list=document.createElement('div');
+  list.className='geo-candidate-list';
+  candidates.forEach(candidate=>{
+    const button=document.createElement('button');
+    button.type='button';button.className='geo-candidate';
+    const title=document.createElement('span');title.textContent=candidate.title;
+    const coords=document.createElement('small');coords.textContent='緯度 '+candidate.lat.toFixed(5)+' / 経度 '+candidate.lon.toFixed(5);
+    button.append(title,coords);
+    button.addEventListener('click',()=>selectGeocodeCandidate(candidate));
+    list.appendChild(button);
+  });
+  geoEl.appendChild(list);
+}
+
+async function selectGeocodeCandidate(candidate){
+  const geoEl=document.getElementById('geo-result');
+  document.getElementById('address').value=candidate.title;
+  geoEl.className='geo-result ok';
+  geoEl.textContent='✓ '+candidate.title+'（緯度:'+candidate.lat.toFixed(5)+', 経度:'+candidate.lon.toFixed(5)+'）';
+  setLocation(candidate.lat,candidate.lon);
+  await reverseGeocodeState(candidate.lat,candidate.lon);
 }
 
 /* ============================================================
@@ -1365,11 +1487,11 @@ function checkAirports(lat,lon){
     if(ap.major&&d<minMajor){minMajor=d;closestMajor={...ap,dist:d};}
   });
   nearestAP=closest;
-  // 300m圏の判定は「最寄の大型空港」で行う（最寄全体が小型空港でも大型空港が300m内なら検知）
-  if(closestMajor&&minMajor<=300){
+  // 対象空港の代表点から1km以内を強い警告にする。法定区域の正確な境界判定ではない。
+  if(closestMajor&&minMajor<=TARGET_FACILITY_BUFFER_METERS){
     majorAP=closestMajor;
     badge.className='dbadge db-yes';
-    badge.textContent='🔴 '+closestMajor.name+' 約'+Math.round(minMajor)+'m（300m圏内）';
+    badge.textContent='🔴 '+closestMajor.name+' 約'+Math.round(minMajor)+'m（1km簡易目安内・公式地図確認）';
   }else if(minAny<=9000){
     majorAP=null;
     badge.className='dbadge db-yes';
@@ -1426,7 +1548,7 @@ async function analyze(){
                ||locFarm||locForest||locHeritage||locSchool||locSports;
 
   const did=autoDID===true,inAP9k=nearestAP&&nearestAP.dist<=9000;
-  const inMaj300=majorAP!==null;
+  const inTargetAirportZone=majorAP!==null;
   const alt=parseInt(document.getElementById('altitude').value)||0;
   const above150=alt>=150;
   const purpose=document.getElementById('purpose').value;
@@ -1442,7 +1564,7 @@ async function analyze(){
   if(restricted||emergency){catKey='cng';catLabel='⛔ 飛行禁止・要個別確認';catDesc='特定重要施設・緊急用務空域は原則飛行禁止です。管轄機関への確認が必須です。';}
   else if(crowd){catKey='c3';catLabel='カテゴリー Ⅲ（レベル4相当）';catDesc='第三者上空・立入管理なし飛行。一等資格＋第一種機体認証＋国交大臣許可が必要です。';}
   else if(inAP9k||event||drop||heavy||above150||agri){catKey='c2a';catLabel='カテゴリー ⅡA';{const _c2aCov=(!inAP9k||blanketAp9k)&&(!above150||blanketAlt150)&&!event&&!drop&&!heavy&&!agri;catDesc=_c2aCov?'特定飛行（ⅡA）に該当します。航空法申請は包括申請で対応済みです（飛行計画の通報は毎回必要）。':'資格の有無に関わらず個別の許可・承認申請が必須です（DIPS2.0）。';}}
-  else if(isSpecial||inMaj300||river||park){catKey='c2b';catLabel='カテゴリー ⅡB / ⅡA';{const _c2bCov=(!did||blanketDid)&&(!night||blanketNight)&&(!bvlos||blanketBvlos)&&(!close||blanketClose);catDesc=_c2bCov?'特定飛行に該当します。航空法の許可・承認申請は包括申請で対応済みです（飛行計画の通報は毎回必要）。':'特定飛行に該当します。DIPS2.0での許可・承認申請が必要です。';}}
+  else if(isSpecial||inTargetAirportZone||river||park){catKey='c2b';catLabel='カテゴリー ⅡB / ⅡA';{const _c2bCov=(!did||blanketDid)&&(!night||blanketNight)&&(!bvlos||blanketBvlos)&&(!close||blanketClose);catDesc=_c2bCov?'特定飛行に該当します。航空法の許可・承認申請は包括申請で対応済みです（飛行計画の通報は毎回必要）。':'特定飛行に該当します。DIPS2.0での許可・承認申請が必要です。';}}
   else{catKey='c1';catLabel='カテゴリー Ⅰ';catDesc='特定飛行に該当しません。DIPS許可申請・飛行計画通報の法的義務はありませんが機体登録とルール遵守は必須です。飛行計画の事前登録を習慣化することを推奨します。';}
 
   /* チェックリスト */
@@ -1450,7 +1572,7 @@ async function analyze(){
   reqs.push({t:'ok',key:'reg',title:'機体登録（全飛行必須）',detail:'100g以上すべての機体が対象。DIPS2.0で登録し機体に登録記号を表示する。未登録は罰則あり。'});
   reqs.push({t:'ok',key:'airspace',title:'飛行前の空域確認（全飛行必須）',detail:'DIPS2.0またはDroneroute・地理院地図で緊急用務空域・飛行禁止空域を飛行直前に確認する。'});
   if(did){reqs.push(blanketDid?{t:'ok',key:'did',title:'DID上空：包括申請で対応済み ✓',detail:'包括申請にDID上空が含まれていれば個別申請は不要です。飛行の都度DIPS2.0で飛行計画を通報してください。'}:hasCert2||hasCert1?{t:'warn',key:'did',title:'DID上空：DIPS2.0で許可申請',detail:'二等（または一等）資格を保有しているため申請要件は満たします。飛行10営業日前までに申請。'}:{t:'stop',key:'did',title:'DID上空：DIPS2.0で許可申請＋資格確認要',detail:'飛行10営業日前までに申請必須。技能証明書を添付すること。'});}
-  if(inMaj300&&majorAP){reqs.push({t:'stop',key:'major300',title:majorAP.name+' 300m圏内：小型無人機等飛行禁止法の追加手続き',detail:'①空港管理者の同意取得 ②都道府県公安委員会への事前通報が必要（航空法申請とは別）。約'+Math.round(majorAP.dist)+'m地点。'});}
+  if(inTargetAirportZone&&majorAP){reqs.push({t:'stop',key:'targetAirport1000',title:majorAP.name+' 1km簡易目安内：小型無人機等飛行禁止法の確認必須',detail:'2026年7月14日から対象施設周辺おおむね1,000mが原則飛行禁止。表示円は空港代表点からの簡易目安で、法定区域の正確な境界ではありません。警察庁・地理院地図で対象区域を確認し、例外飛行では施設管理者等の同意取得と公安委員会への事前通報が必要です。約'+Math.round(majorAP.dist)+'m地点。'});}
   if(inAP9k&&nearestAP){reqs.push(blanketAp9k?{t:'ok',key:'ap9k',title:nearestAP.name+' 9km圏内：包括申請で対応済み ✓',detail:'包括申請に空港周辺が含まれていれば個別申請は不要です。飛行前に飛行計画の通報を忘れずに。'}:{t:'warn',key:'ap9k',title:nearestAP.name+' 9km圏内：DIPS2.0で許可申請（ⅡA）',detail:'空港から約'+(nearestAP.dist/1000).toFixed(1)+'km。空港事務所への事前連絡・調整も必要。飛行10営業日前まで。'});}
   if(above150){reqs.push(blanketAlt150?{t:'ok',key:'alt150',title:'高度'+alt+'m：包括申請で対応済み ✓',detail:'包括申請に150m以上の飛行が含まれていれば個別申請は不要です。飛行計画の通報を実施してください。'}:{t:'warn',key:'alt150',title:'高度'+alt+'m：150m以上は許可申請（ⅡA）',detail:'有人航空機との空域調整も必要。申請書に飛行経路図・最高高度を明記すること。'});}
   if(night){reqs.push(blanketNight?{t:'ok',key:'night',title:'夜間飛行：包括申請で対応済み ✓',detail:'包括申請に夜間飛行が含まれていれば個別承認申請は不要です。灯火の装備と飛行マニュアルへの夜間手順記載は引き続き必要。'}:hasNight&&(hasCert2||hasCert1)?{t:'ok',key:'night',title:'夜間飛行：夜間限定解除保有のため対応可 ✓',detail:'灯火の装備と飛行マニュアルへの夜間手順記載が必要。DID・空港圏内の場合は別途申請も必要。'}:{t:'warn',key:'night',title:'夜間飛行：DIPS2.0で承認申請が必要',detail:'夜間限定解除または個別承認申請が必要。'});}
@@ -1462,7 +1584,7 @@ async function analyze(){
   if(agri){reqs.push({t:'stop',key:'agri',title:'農薬散布：農水省ガイドライン＋DIPS2.0申請',detail:'農薬取締法に基づく適正使用が必要。市区町村農業委員会への事前届出と近隣農家への周知が必要。'});}
   if(road){reqs.push({t:'warn',key:'road',title:'道路使用：管轄警察署への道路使用許可申請',detail:'航空法の申請とは別に道路交通法に基づく申請が必要。許可まで1〜2週間。'});}
   if(heavy){reqs.push({t:'stop',key:'heavy',title:'25kg以上の機体：カテゴリーⅡA 個別許可申請',detail:'機体仕様書・整備記録・保険の加入証明等を添付すること。'});}
-  if(restricted){reqs.push({t:'stop',key:'restricted',title:'特定重要施設周辺：原則飛行禁止（小型無人機等飛行禁止法）',detail:'現行は施設周辺おおむね300m圏内が禁止。⚠ 改正法案が2026年通常国会に提出済み・夏ごろ施行見込み：禁止エリアが1,000mに拡大予定。管轄警察・施設管理者への事前申請・通報が必要。許可されないケースが多い。'});}
+  if(restricted){reqs.push({t:'stop',key:'restricted',title:'特定重要施設周辺：原則飛行禁止（小型無人機等飛行禁止法）',detail:'2026年7月14日から、対象施設とその周辺おおむね1,000mの上空は原則飛行禁止です。例外に該当する場合も、施設管理者等の同意取得と管轄公安委員会への事前通報が必要です。必ず警察庁・地理院地図の最新指定区域を確認してください。'});}
   if(emergency){reqs.push({t:'stop',key:'emergency',title:'緊急用務空域：飛行禁止',detail:'国土交通大臣が指定した緊急用務空域。指定解除まで飛行不可。'});}
   if(river){reqs.push({t:'warn',key:'river',title:'河川・湖沼・海岸：管理者への事前確認',detail:'一級河川は国交省河川事務所、二級河川は都道府県、海上は海上保安部へ事前確認が必要。'});}
   if(park){reqs.push({t:'warn',key:'park',title:'公園・国立公園：公園管理者への許可申請',detail:'都市公園は各自治体公園管理事務所、国立公園は環境省または都道府県自然保護課へ。'});}
@@ -1499,8 +1621,8 @@ async function analyze(){
     if(_covPK.length>0)subs.push({reason:'航空法に基づく特定飛行（包括申請取得済み）',law:'航空法 第132条の85・第132条の86',to:'国土交通省（DIPS2.0）— 飛行計画の通報（毎回必要）',detail:'【包括申請≠飛行計画】包括申請（=許可・承認の事前取得）が完了しているため個別の許可申請は不要です。ただし飛行のたびに、DIPS2.0で「飛行計画」（飛行場所・飛行時間・機体）を登録して通報することは別途必要です。包括申請の有効期間・対象条件も事前に確認してください。',deadline:'飛行前日〜当日（飛行計画通報）',url:'https://dips2.mlit.go.jp/',links:[],reqKeys:_covPK});
     if(_indPK.length>0)subs.push({reason:_covPK.length>0?'航空法に基づく特定飛行（包括申請の対象外—個別申請必要）':'航空法に基づく特定飛行',law:'航空法 第132条の85・第132条の86',to:'国土交通省（DIPS2.0）',detail:_covPK.length>0?'催し物上空・物件投下・第三者上空（Ⅲ）・25kg以上の機体または包括申請に含まれない条件は個別の許可・承認申請が必要です。飛行10営業日前までに申請してください。':'飛行開始の10営業日前（土日祝除く）までにオンライン申請。',deadline:'飛行10営業日前まで',url:'https://dips2.mlit.go.jp/',links:[],reqKeys:_indPK});
   }
-  if(inMaj300&&majorAP){
-    subs.push({reason:majorAP.name+'周辺300m圏内の飛行',law:'小型無人機等飛行禁止法 第2条・第9条',to:'都道府県公安委員会（警察）＋空港管理者',detail:'①管轄警察本部または空港警察署へ通報 ②空港管理者の同意書を取得。',deadline:'飛行前まで（余裕をもって）',url:'https://www.npa.go.jp/',links:[sLink(city+' 警察署 電話番号',city+' 警察署'),sLink(majorAP.name+' 空港管理者 問い合わせ','空港管理者')],reqKeys:['major300']});
+  if(inTargetAirportZone&&majorAP){
+    subs.push({reason:majorAP.name+'周辺1km簡易目安内の飛行',law:'小型無人機等飛行禁止法 第2条・第9条',to:'都道府県公安委員会（警察）＋空港管理者',detail:'表示円は法定区域の代用ではありません。警察庁・地理院地図で指定区域を確認し、例外飛行では①施設管理者等の同意取得 ②管轄公安委員会への事前通報が必要です。',deadline:'飛行前まで（余裕をもって）',url:'https://www.npa.go.jp/bureau/security/kogatamujinki/',links:[sLink(city+' 警察署 電話番号',city+' 警察署'),sLink(majorAP.name+' 空港管理者 問い合わせ','空港管理者')],reqKeys:['targetAirport1000']});
   }
   if(restricted){subs.push({reason:'特定重要施設周辺の飛行',law:'小型無人機等飛行禁止法 第2条・第9条',to:'管轄警察署＋施設管理者',detail:'原則飛行禁止。管轄警察署への事前通報と施設管理者の許可が必要。',deadline:'飛行前（許可が下りない場合あり）',url:'https://www.npa.go.jp/',links:[sLink(city+' 警察署 住所 電話番号',city+' 管轄警察署')],reqKeys:['restricted']});}
   if(road){subs.push({reason:'公道上・道路際からの離発着',law:'道路交通法 第77条',to:'管轄警察署（交通課）',detail:'管轄警察署の交通課へ申請。申請書・図面・飛行計画書を添付。',deadline:'飛行1〜2週間前まで',url:'https://www.npa.go.jp/bureau/traffic/content/road_use.pdf',links:[sLink(city+' 警察署 交通課 道路使用許可',city+' 警察署 交通課')],reqKeys:['road']});}
@@ -2007,17 +2129,18 @@ function resetPreflight(){
 function getPilot(){try{return JSON.parse(localStorage.getItem(PILOT_KEY)||'null');}catch(e){return null;}}
 function savePilot(){
   const d={};
-  ['name','birth','tel','email','addr','dips','kikai','model','weight','ins'].forEach(k=>{d[k]=document.getElementById('p-'+k).value;});
+  ['name','birth','tel','email','addr','dips','kikai','model','weight','ins','insp-date','ins-expiry'].forEach(k=>{d[k]=document.getElementById('p-'+k).value;});
   ['cert1','cert2','night-cert','bvlos-cert','juida','dpa','drone-check','insurance','blanket-did','blanket-ap9k','blanket-alt150','blanket-night','blanket-bvlos','blanket-close'].forEach(id=>{
     const el=document.querySelector('#tab-pilot [data-id="'+id+'"]');d['chk_'+id]=el?el.classList.contains('on'):false;
   });
   localStorage.setItem(PILOT_KEY,JSON.stringify(d));
   const n=document.getElementById('save-notice');n.style.display='inline';setTimeout(()=>n.style.display='none',2500);
   renderPilotSummary();
+  checkMaintReminder();
 }
 function loadPilot(){
   const d=getPilot();if(!d)return;
-  ['name','birth','tel','email','addr','dips','kikai','model','weight','ins'].forEach(k=>{const el=document.getElementById('p-'+k);if(el&&d[k]!=null)el.value=d[k];});
+  ['name','birth','tel','email','addr','dips','kikai','model','weight','ins','insp-date','ins-expiry'].forEach(k=>{const el=document.getElementById('p-'+k);if(el&&d[k]!=null)el.value=d[k];});
   ['cert1','cert2','night-cert','bvlos-cert','juida','dpa','drone-check','insurance','blanket-did','blanket-ap9k','blanket-alt150','blanket-night','blanket-bvlos','blanket-close'].forEach(id=>{
     const el=document.querySelector('#tab-pilot [data-id="'+id+'"]');if(el&&d['chk_'+id]!==undefined)el.classList.toggle('on',!!d['chk_'+id]);
   });
@@ -2031,6 +2154,40 @@ function renderPilotSummary(){
   if(p.chk_insurance)badges.push('保険加入済');
   if(['blanket-did','blanket-ap9k','blanket-alt150','blanket-night','blanket-bvlos','blanket-close'].some(id=>p['chk_'+id]))badges.push('包括申請済み');
   box.innerHTML='<div class="pilot-box"><strong>🪪 '+esc(p.name)+'</strong> のプロフィールで確認中<div class="pp-badges">'+badges.map(b=>'<span class="pp-badge">'+esc(b)+'</span>').join('')+'</div></div>';
+}
+
+/* 機体点検・保険満了日リマインダー（自己入力日と今日の日付を比べるだけ・法定義務ではない） */
+function checkMaintReminder(){
+  const banner = document.getElementById('maint-banner');
+  if (!banner) return;
+  const p = getPilot();
+  if (!p) { banner.style.display = 'none'; return; }
+  const now = new Date();
+  const todayStr = now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
+  const todayMs = new Date(todayStr+'T00:00:00+09:00').getTime();
+  const REMINDER_DAYS = 30;
+  const items = [];
+  [['insp-date','機体点検'], ['ins-expiry','保険']].forEach(([key,label]) => {
+    const dateStr = p[key];
+    if (!dateStr) return;
+    const target = new Date(dateStr+'T00:00:00+09:00');
+    if (!Number.isFinite(target.getTime())) return;
+    const diffDays = Math.round((target.getTime() - todayMs) / 86400000);
+    if (diffDays < 0) items.push({label, dateStr, status:'expired', diffDays});
+    else if (diffDays <= REMINDER_DAYS) items.push({label, dateStr, status:'soon', diffDays});
+  });
+  if (!items.length) { banner.style.display = 'none'; return; }
+  const hasExpired = items.some(i => i.status === 'expired');
+  const lines = items.map(i => i.status === 'expired'
+    ? '<strong style="color:var(--red);">⚠ ' + esc(i.label) + 'の予定日（' + esc(i.dateStr) + '）を' + Math.abs(i.diffDays) + '日過ぎています</strong>'
+    : '<strong style="color:var(--amber);">🔧 ' + esc(i.label) + 'の予定日（' + esc(i.dateStr) + '）まで残り' + i.diffDays + '日です</strong>'
+  ).join('<br>');
+  document.getElementById('maint-banner-icon').textContent = hasExpired ? '🚨' : '🔧';
+  document.getElementById('maint-banner-body').innerHTML = lines
+    + '<br>自己入力の予定日によるお知らせです（法定義務ではありません）。パイロット情報タブから日付を更新できます。';
+  banner.style.background  = hasExpired ? 'rgba(248,113,113,0.10)' : 'rgba(251,191,36,0.08)';
+  banner.style.borderColor = hasExpired ? 'rgba(248,113,113,0.45)' : 'rgba(251,191,36,0.35)';
+  banner.style.display = 'flex';
 }
 
 /* ============================================================
@@ -2291,7 +2448,7 @@ function updateRouteInfo() {
   const km = (totalDist/1000).toFixed(1);
   const apKm = (minDist/1000).toFixed(1);
   let apWarn = '';
-  if (minDist <= 300 && minAP?.major) apWarn = ' 🔴 '+ minAP.name+'300m圏内！';
+  if (minDist <= TARGET_FACILITY_BUFFER_METERS && minAP?.major) apWarn = ' 🔴 '+ minAP.name+' 1km簡易目安内（公式地図確認）';
   else if (minDist <= 9000) apWarn = ' ⚠ '+minAP.name+' '+apKm+'km（9km圏内）';
 
   // DID判定結果を集計
@@ -2477,7 +2634,8 @@ function renderLogStats() {
   const totalMins    = logs.reduce((s,e) => s+(e.duration||0), 0);
   const totalH       = Math.floor(totalMins/60);
   const totalM       = totalMins%60;
-  const thisMonth    = new Date().toISOString().slice(0,7);
+  const _statsNow    = new Date();
+  const thisMonth    = _statsNow.getFullYear()+'-'+String(_statsNow.getMonth()+1).padStart(2,'0');
   const thisMonthN   = logs.filter(e => e.date && e.date.startsWith(thisMonth)).length;
   const incidents    = logs.filter(e => e.incident && e.incident !== 'なし').length;
 
@@ -2636,7 +2794,7 @@ function buildCSV(logs) {
     e.incident, e.note || '',
   ]);
   const csv = [headers, ...rows].map(r =>
-    r.map(v => '"' + String(v||'').replace(/"/g,'""') + '"').join(',')
+    r.map(v => '"' + String(v===0 ? '0' : (v||'')).replace(/"/g,'""') + '"').join(',')
   ).join('\r\n');
   const blob = new Blob(['﻿' + csv], {type:'text/csv;charset=utf-8;'});
   const url = URL.createObjectURL(blob);
@@ -2738,17 +2896,46 @@ function exportAllData() {
   URL.revokeObjectURL(url);
 }
 
+const MAX_BACKUP_FILE_BYTES = 2 * 1024 * 1024;
+function isPlainObject(value) {
+  return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+function validateBackupData(data) {
+  if (!isPlainObject(data) || typeof data.exportedAt !== 'string'
+      || !Number.isFinite(Date.parse(data.exportedAt))) {
+    throw new Error('invalid format');
+  }
+  if (data.pilot !== null && data.pilot !== undefined && !isPlainObject(data.pilot)) {
+    throw new Error('invalid pilot');
+  }
+  if (data.preflight !== undefined && !isPlainObject(data.preflight)) {
+    throw new Error('invalid preflight');
+  }
+  if (data.flightLog !== undefined
+      && (!Array.isArray(data.flightLog) || data.flightLog.length > 5000
+          || data.flightLog.some(item => !isPlainObject(item)))) {
+    throw new Error('invalid flight log');
+  }
+  if (data.history !== undefined
+      && (!Array.isArray(data.history) || data.history.length > 100
+          || data.history.some(item => !isPlainObject(item)))) {
+    throw new Error('invalid history');
+  }
+}
+
 function importAllData(event) {
   const file = event.target.files[0];
   if (!file) return;
+  if (file.size > MAX_BACKUP_FILE_BYTES) {
+    alert('バックアップファイルが大きすぎます（上限2MB）。');
+    event.target.value = '';
+    return;
+  }
   const reader = new FileReader();
   reader.onload = function(e) {
     try {
       const data = JSON.parse(e.target.result);
-      // バリデーション：最低限の構造チェック
-      if (typeof data !== 'object' || !data.exportedAt) {
-        throw new Error('invalid format');
-      }
+      validateBackupData(data);
       if (!confirm(
         'バックアップファイルをインポートします。\n'
         + 'エクスポート日時: ' + new Date(data.exportedAt).toLocaleString('ja-JP') + '\n'
@@ -2823,12 +3010,38 @@ function autoCalcDuration(takeoffId, landingId, durationId) {
   const [th, tm] = takeoff.split(':').map(Number);
   const [lh, lm] = landing.split(':').map(Number);
   let diff = (lh * 60 + lm) - (th * 60 + tm);
-  if (diff <= 0) diff += 24 * 60; // 日をまたいだ場合（例: 23:30→00:30）
+  if (diff < 0) diff += 24 * 60; // 日をまたいだ場合（例: 23:30→00:30）
   if (diff > 0) document.getElementById(durationId).value = diff;
 }
 
+/* 「H時間M分」形式のテキストから分数を取り出す（解釈できなければnull） */
+function parseTotalTimeToMinutes(str) {
+  if (!str) return null;
+  const h = String(str).match(/(\d+)\s*時間/);
+  const m = String(str).match(/(\d+)\s*分/);
+  if (!h && !m) return null;
+  return (h ? parseInt(h[1], 10) : 0) * 60 + (m ? parseInt(m[1], 10) : 0);
+}
+function formatMinutesToTotalTime(mins) {
+  return Math.floor(mins / 60) + '時間' + (mins % 60) + '分';
+}
+/* 同一機体の直近記録の総飛行時間＋今回の飛行時間を自動入力（既に入力済みなら上書きしない） */
+function autoFillTotalTime(durationId, totalTimeId) {
+  const totalEl = document.getElementById(totalTimeId);
+  if (!totalEl || totalEl.value.trim()) return;
+  const kikai = getPilot()?.kikai || '';
+  if (!kikai) return;
+  const prevLogs = getLogs().filter(e => e.kikai === kikai && e.totalTime);
+  if (!prevLogs.length) return;
+  prevLogs.sort((a, b) => (b.date + (b.takeoffTime||'')).localeCompare(a.date + (a.takeoffTime||'')));
+  const prevMinutes = parseTotalTimeToMinutes(prevLogs[0].totalTime);
+  if (prevMinutes === null) return;
+  const dur = parseInt(document.getElementById(durationId).value, 10) || 0;
+  totalEl.value = formatMinutesToTotalTime(prevMinutes + dur);
+}
+
 window.addEventListener('DOMContentLoaded',()=>{
-  initMap();loadPilot();renderPilotSummary();renderPreflight();renderLogList();
+  initMap();loadPilot();renderPilotSummary();renderPreflight();renderLogList();checkMaintReminder();
   updateStepGuide();
   // ガイドの開閉状態を復元
   try {
@@ -2837,7 +3050,8 @@ window.addEventListener('DOMContentLoaded',()=>{
       document.getElementById('guide-arrow').textContent = '▼ 開く';
     }
   } catch(e){}
-  const today = new Date().toISOString().slice(0,10);
+  const _now = new Date();
+  const today = _now.getFullYear()+'-'+String(_now.getMonth()+1).padStart(2,'0')+'-'+String(_now.getDate()).padStart(2,'0');
   document.getElementById('log-date').value = today;
 
   // デフォルト値設定
@@ -2852,10 +3066,15 @@ window.addEventListener('DOMContentLoaded',()=>{
 
   // 飛行時間の自動計算（追加フォーム）
   ['log-takeoff-time','log-landing-time'].forEach(id => {
-    document.getElementById(id).addEventListener('change', () =>
-      autoCalcDuration('log-takeoff-time','log-landing-time','log-duration')
-    );
+    document.getElementById(id).addEventListener('change', () => {
+      autoCalcDuration('log-takeoff-time','log-landing-time','log-duration');
+      autoFillTotalTime('log-duration','log-total-time');
+    });
   });
+  // 製造後の総飛行時間の自動入力（同一機体の直近記録＋今回の飛行時間分・手入力があれば上書きしない）
+  document.getElementById('log-duration').addEventListener('change', () =>
+    autoFillTotalTime('log-duration','log-total-time')
+  );
   // 飛行時間の自動計算（編集モーダル）
   ['edit-log-takeoff-time','edit-log-landing-time'].forEach(id => {
     document.getElementById(id).addEventListener('change', () =>
