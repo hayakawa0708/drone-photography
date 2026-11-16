@@ -28,18 +28,36 @@ class LawBaselineTests(unittest.TestCase):
         self.assertIn("const didUnknown=autoDID!==true&&autoDID!==false;", HTML)
         self.assertIn("if(didUnknown&&catKey==='c1')", HTML)
         self.assertIn("key:'did-unknown'", HTML)
-        # 判定ボタン押下時は実行中のDID判定を待つ
-        self.assertIn("didCheckPromise=checkDID(lat,lon);", HTML)
+        # 判定ボタン押下時は実行中のDID判定を待ち、待つ間に場所が変わったら中止する
+        self.assertIn("didCheckPromise=checkDID(lat,lon,gen);", HTML)
         self.assertIn("await Promise.race([didCheckPromise,", HTML)
-        # 予備判定はタイルが無い（404）ときだけDID外。サーバーエラーで「DID外」にしない
-        self.assertIn("else if(r.status===404)autoDID=false;", HTML)
-        self.assertNotIn("autoDID=r.ok;", HTML)
+        self.assertIn("if(locChanged())return;", HTML)
+        # 予備判定はタイルが無い（404）ときだけDID外。サーバーエラーで「DID外」にしない（単一地点・ルート共通）
+        self.assertIn("if(r.status===404)return {did:false,source:'tile'};", HTML)
+        self.assertNotIn("return r.ok;", HTML)
+        # カテゴリーⅠ以外・申請下書きにもDID未確認を伝える
+        self.assertIn("catLabel+='（DID未確認）';", HTML)
+        self.assertIn("conds.push('人口集中地区上空（DID未確認・要確認）')", HTML)
 
     def test_flight_log_ids_are_integers_before_html_embedding(self):
         # 2026-11-16 Codexレビュー: インポートした不正なidがonclickへ直接埋め込まれXSSになっていた
         self.assertNotIn("'+e.id+'", HTML)
         self.assertIn("const sid = Number.isSafeInteger(e.id) ? e.id : 'null';", HTML)
         self.assertIn("!isPlainObject(item) || !Number.isSafeInteger(item.id)", HTML)
+
+    def test_behavior_in_node(self):
+        # 2026-11-16 Codexレビューの修正（インポート検証・履歴XSS・DID三値・古い地点の破棄・CSV/Excel出力）を
+        # drone_checker.html から関数を取り出して実際に動かして確かめる
+        import shutil
+        import subprocess
+        node = shutil.which("node")
+        if not node:
+            self.skipTest("node が見つからないため振る舞いテストを省略")
+        proc = subprocess.run(
+            [node, str(ROOT / "tests" / "behavior_check.mjs")],
+            capture_output=True, text=True, encoding="utf-8", timeout=60,
+        )
+        self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
 
     def test_law_status_matches_app(self):
         status = json.loads((ROOT / "law_status.json").read_text(encoding="utf-8"))

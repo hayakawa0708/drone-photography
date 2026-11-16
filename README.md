@@ -42,7 +42,7 @@ drone-photography/
 ├── law_status.json                           # 法令更新チェック用（AWS版は同一配信元、ローカル版はGitHub）
 ├── template_b64.txt                          # 飛行記録Excelテンプレート
 ├── vendor/                                   # 固定版のLeaflet・JSZipとライセンス
-├── tests/                                    # 静的な安全性・法令基準テスト
+├── tests/                                    # 静的な安全性・法令基準テスト＋関数を実際に動かす振る舞いテスト（behavior_check.mjs、Node.js必要）。実行: python -m unittest discover -s tests
 ├── deploy/aws/                               # AWS Phase 1の設計図・手順書・配布補助
 ├── ドローンチェッカー_完全ガイド.docx          # 利用者向け完全ガイド
 ├── 法令改正チェックシステム解説書.docx         # 法令チェック機能の解説書

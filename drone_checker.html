@@ -936,6 +936,9 @@ function esc(s){
 ============================================================ */
 let geoLat=null,geoLon=null,autoDID=null,nearestAP=null,majorAP=null;
 let didCheckPromise=null;  // 判定ボタン押下時に、実行中のDID判定の完了を待つため
+// 飛行場所の世代番号。場所を変えるたび（リセット含む）に増やし、古い地点の非同期結果（DID・住所・役所）を捨てるために使う
+// （2026-11-16 Codexレビュー: 地点Aの判定中に地点Bへ移ると、Aの結果がBを上書きしていた）
+let locGen=0;
 let mapMarker=null,currentPref='',currentCity='';
 let cityHallData=null;
 
@@ -1302,6 +1305,7 @@ function setMapPin(lat,lon){
    SET LOCATION
 ============================================================ */
 function setLocation(lat,lon){
+  const gen=++locGen;
   geoLat=lat;geoLon=lon;
   autoDID=null;nearestAP=null;majorAP=null;currentPref='';currentCity='';cityHallData=null;
   setMapPin(lat,lon);
@@ -1311,7 +1315,7 @@ function setLocation(lat,lon){
   document.getElementById('badge-did').textContent='⏳ DID判定中...';
   document.getElementById('badge-ap').className='dbadge db-spin';
   document.getElementById('badge-ap').textContent='⏳ 空港チェック中...';
-  didCheckPromise=checkDID(lat,lon);
+  didCheckPromise=checkDID(lat,lon,gen);
   checkAirports(lat,lon);
   fetchWeather(lat,lon);
   updateStepGuide();
@@ -1378,11 +1382,13 @@ async function selectGeocodeCandidate(candidate){
    REVERSE GEOCODING (マップクリック時: 住所表示用)
 ============================================================ */
 async function reverseGeocode(lat,lon){
+  const gen=locGen;
   const geoEl=document.getElementById('geo-result');
   geoEl.style.display='block';geoEl.className='geo-result';geoEl.textContent='🔍 住所を取得中...';
   try{
     const res=await fetch('https://mreversegeocoder.gsi.go.jp/reverse-geocoder/LonLatToAddress?lon='+lon.toFixed(6)+'&lat='+lat.toFixed(6),{mode:'cors'});
     const data=await res.json();
+    if(gen!==locGen)return;  // 取得中に場所が変わった
     const r=data.results;
     if(r&&r.muniCd){
       currentPref=r.lv01Nm||'';
@@ -1396,14 +1402,16 @@ async function reverseGeocode(lat,lon){
       geoEl.className='geo-result ok';
       geoEl.textContent='📍 緯度:'+lat.toFixed(5)+', 経度:'+lon.toFixed(5);
     }
-  }catch(e){geoEl.className='geo-result ok';geoEl.textContent='📍 緯度:'+lat.toFixed(5)+', 経度:'+lon.toFixed(5);}
+  }catch(e){if(gen!==locGen)return;geoEl.className='geo-result ok';geoEl.textContent='📍 緯度:'+lat.toFixed(5)+', 経度:'+lon.toFixed(5);}
 }
 
 /* 住所検索時の市区町村取得（表示更新なし） */
 async function reverseGeocodeState(lat,lon){
+  const gen=locGen;
   try{
     const res=await fetch('https://mreversegeocoder.gsi.go.jp/reverse-geocoder/LonLatToAddress?lon='+lon.toFixed(6)+'&lat='+lat.toFixed(6),{mode:'cors'});
     const data=await res.json();
+    if(gen!==locGen)return;  // 取得中に場所が変わった
     const r=data.results;
     if(r&&r.muniCd){currentPref=r.lv01Nm||'';currentCity=r.lv02Nm||r.lv01Nm||'';fetchCityHallInfo(currentCity,currentPref);}
   }catch(e){}
@@ -1411,6 +1419,7 @@ async function reverseGeocodeState(lat,lon){
 
 /* 市区町村役所の位置情報をGSI APIで取得 */
 async function fetchCityHallInfo(city,pref){
+  const gen=locGen;
   cityHallData=null;
   if(!city)return;
   const hall=(city.endsWith('村')||city.endsWith('町'))?'役場':'市役所';
@@ -1421,6 +1430,7 @@ async function fetchCityHallInfo(city,pref){
       const res=await fetch('https://msearch.gsi.go.jp/address-search/AddressSearch?q='+encodeURIComponent(q),{mode:'cors'});
       if(!res.ok)continue;
       const data=await res.json();
+      if(gen!==locGen)return;  // 取得中に場所が変わった
       if(Array.isArray(data)&&data.length){
         const[lon,lat]=data[0].geometry.coordinates;
         cityHallData={lat,lon,title:data[0].properties?.title||'',city,pref,hall};
@@ -1434,8 +1444,11 @@ async function fetchCityHallInfo(city,pref){
    DID CHECK — WMS方式（2020年国勢調査ベース）
    国土地理院WMSでdid2020レイヤーの指定座標ピクセルを取得
 ============================================================ */
-async function checkDID(lat,lon){
-  const badge=document.getElementById('badge-did');
+/* DID判定の共通処理（DOM更新なし）。単一地点とルートの両方で使う。
+   戻り値: {did:true|false, source:'wms'|'tile'}、判定できなければ null。
+   タイル方式は「タイルが無い（404）」ときだけDID外とし、サーバーエラー等は判定不明（null）にする
+   （2026-11-16 Codexレビュー: 500等でも「DID外」と表示されていた）。 */
+async function getDIDStatusDetail(lat,lon){
   try{
     const delta=0.0005;
     const minX=lon-delta,minY=lat-delta,maxX=lon+delta,maxY=lat+delta;
@@ -1453,9 +1466,7 @@ async function checkDID(lat,lon){
     const canvas=document.createElement('canvas');canvas.width=9;canvas.height=9;
     canvas.getContext('2d').drawImage(img,0,0);
     const d=canvas.getContext('2d').getImageData(4,4,1,1).data;
-    autoDID=d[3]>10;
-    badge.className=autoDID?'dbadge db-yes':'dbadge db-no';
-    badge.textContent=autoDID?'⚠ DID（人口集中地区）内':'✓ DID外（人口集中地区外）';
+    return {did:d[3]>10,source:'wms'};
   }catch(e){
     // WMS失敗時: タイル存在チェックにフォールバック（2020版）
     try{
@@ -1464,19 +1475,29 @@ async function checkDID(lat,lon){
       const sinL=Math.sin(lat*Math.PI/180);
       const tY=Math.floor((1-Math.log((1+sinL)/(1-sinL))/(2*Math.PI))/2*n);
       const r=await fetch('https://cyberjapandata.gsi.go.jp/xyz/did2020/'+zoom+'/'+tX+'/'+tY+'.png',{method:'HEAD',mode:'cors'});
-      // タイルが無い（404）ときだけDID外。サーバーエラー等は判定不明として扱う
-      // （2026-11-16 Codexレビュー: 500等でも「DID外」と表示されていた）
-      if(r.ok)autoDID=true;
-      else if(r.status===404)autoDID=false;
-      else throw new Error('DID tile check failed: HTTP '+r.status);
-      badge.className=autoDID?'dbadge db-yes':'dbadge db-no';
-      badge.textContent=autoDID?'⚠ DID可能性あり（地理院地図で要確認）':'✓ DID外';
+      if(r.ok)return {did:true,source:'tile'};
+      if(r.status===404)return {did:false,source:'tile'};
+      return null;
     }catch(e2){
-      autoDID=null;
-      badge.className='dbadge db-unk';
-      badge.textContent='❓ DID：地理院地図で確認してください';
+      return null;
     }
   }
+}
+
+async function checkDID(lat,lon,gen){
+  const result=await getDIDStatusDetail(lat,lon);
+  if(gen!==locGen)return;  // 判定中に場所が変わった：古い地点の結果は捨てる
+  const badge=document.getElementById('badge-did');
+  if(!result){
+    autoDID=null;
+    badge.className='dbadge db-unk';
+    badge.textContent='❓ DID：地理院地図で確認してください';
+    return;
+  }
+  autoDID=result.did;
+  badge.className=autoDID?'dbadge db-yes':'dbadge db-no';
+  if(result.source==='wms')badge.textContent=autoDID?'⚠ DID（人口集中地区）内':'✓ DID外（人口集中地区外）';
+  else badge.textContent=autoDID?'⚠ DID可能性あり（地理院地図で要確認）':'✓ DID外';
 }
 
 /* ============================================================
@@ -1519,14 +1540,22 @@ function cv(id){const el=document.querySelector('[data-id="'+id+'"]');return el?
 ============================================================ */
 async function analyze(){
   if(!geoLat||!geoLon){alert('先に飛行場所を入力または地図上でクリックしてください。');return;}
+  // 待っている間に飛行場所が変わったら、古い地点の結果を出さずに中止する
+  const gen=locGen;
+  const locChanged=()=>{
+    if(gen===locGen)return false;
+    alert('判定中に飛行場所が変わりました。もう一度「判定」を押してください。');
+    return true;
+  };
   // DID判定がまだ終わっていなければ最大10秒待つ（それでも終わらなければ「DID未確認」として結果に出す）
   if(didCheckPromise&&autoDID===null){
     await Promise.race([didCheckPromise,new Promise(r=>setTimeout(r,10000))]);
+    if(locChanged())return;
   }
   // 市区町村名が未取得の場合は先に取得
-  if(!currentCity) await reverseGeocodeState(geoLat,geoLon);
+  if(!currentCity){await reverseGeocodeState(geoLat,geoLon);if(locChanged())return;}
   // 市役所情報が未取得の場合はここで待機
-  if(!cityHallData&&currentCity) await fetchCityHallInfo(currentCity,currentPref);
+  if(!cityHallData&&currentCity){await fetchCityHallInfo(currentCity,currentPref);if(locChanged())return;}
   const p=getPilot();
   const hasCert1=p?!!p.chk_cert1:false,hasCert2=p?!!p.chk_cert2:false;
   const hasNight=p?!!p['chk_night-cert']:false,hasBvlos=p?!!p['chk_bvlos-cert']:false;
@@ -1575,13 +1604,17 @@ async function analyze(){
   let catKey,catLabel,catDesc;
   if(restricted||emergency){catKey='cng';catLabel='⛔ 飛行禁止・要個別確認';catDesc='特定重要施設・緊急用務空域は原則飛行禁止です。管轄機関への確認が必須です。';}
   else if(crowd){catKey='c3';catLabel='カテゴリー Ⅲ（レベル4相当）';catDesc='第三者上空・立入管理なし飛行。一等資格＋第一種機体認証＋国交大臣許可が必要です。';}
-  else if(inAP9k||event||drop||heavy||above150||agri){catKey='c2a';catLabel='カテゴリー ⅡA';{const _c2aCov=(!inAP9k||blanketAp9k)&&(!above150||blanketAlt150)&&!event&&!drop&&!heavy&&!agri;catDesc=_c2aCov?'特定飛行（ⅡA）に該当します。航空法申請は包括申請で対応済みです（飛行計画の通報は毎回必要）。':'資格の有無に関わらず個別の許可・承認申請が必須です（DIPS2.0）。';}}
-  else if(isSpecial||inTargetAirportZone||river||park){catKey='c2b';catLabel='カテゴリー ⅡB / ⅡA';{const _c2bCov=(!did||blanketDid)&&(!night||blanketNight)&&(!bvlos||blanketBvlos)&&(!close||blanketClose);catDesc=_c2bCov?'特定飛行に該当します。航空法の許可・承認申請は包括申請で対応済みです（飛行計画の通報は毎回必要）。':'特定飛行に該当します。DIPS2.0での許可・承認申請が必要です。';}}
+  else if(inAP9k||event||drop||heavy||above150||agri){catKey='c2a';catLabel='カテゴリー ⅡA';{const _c2aCov=(!inAP9k||blanketAp9k)&&(!above150||blanketAlt150)&&!event&&!drop&&!heavy&&!agri&&(!didUnknown||blanketDid)&&(!did||blanketDid)&&(!night||blanketNight)&&(!bvlos||blanketBvlos)&&(!close||blanketClose);catDesc=_c2aCov?'特定飛行（ⅡA）に該当します。航空法申請は包括申請で対応済みです（飛行計画の通報は毎回必要）。':'資格の有無に関わらず個別の許可・承認申請が必須です（DIPS2.0）。';}}
+  else if(isSpecial||inTargetAirportZone||river||park){catKey='c2b';catLabel='カテゴリー ⅡB / ⅡA';{const _c2bCov=(!did||blanketDid)&&(!didUnknown||blanketDid)&&(!night||blanketNight)&&(!bvlos||blanketBvlos)&&(!close||blanketClose);catDesc=_c2bCov?'特定飛行に該当します。航空法の許可・承認申請は包括申請で対応済みです（飛行計画の通報は毎回必要）。':'特定飛行に該当します。DIPS2.0での許可・承認申請が必要です。';}}
   else{catKey='c1';catLabel='カテゴリー Ⅰ';catDesc='特定飛行に該当しません。DIPS許可申請・飛行計画通報の法的義務はありませんが機体登録とルール遵守は必須です。飛行計画の事前登録を習慣化することを推奨します。';}
 
   if(didUnknown&&catKey==='c1'){
     catLabel='カテゴリー Ⅰ（DID未確認・要確認）';
     catDesc='DID（人口集中地区）かどうかを自動判定できませんでした。地理院地図でDID外と確認できた場合のみカテゴリーⅠです。DID内なら特定飛行となり、DIPS2.0での許可申請が必要です。';
+  }else if(didUnknown&&catKey!=='cng'){
+    // カテゴリーⅠ以外でもDID未確認を伝える（2026-11-16 Codexレビュー: ⅡB等では「包括申請で対応済み」と出ていた）
+    catLabel+='（DID未確認）';
+    catDesc+=' ※DID（人口集中地区）かどうかは自動判定できていません。地理院地図で確認し、DID内なら（包括申請にDIDが含まれない限り）許可申請が必要です。';
   }
 
   /* チェックリスト */
@@ -1903,6 +1936,7 @@ async function analyze(){
   /* 申請書下書き */
   const conds=[];
   if(did)conds.push('人口集中地区上空');
+  else if(didUnknown)conds.push('人口集中地区上空（DID未確認・要確認）');
   if(inAP9k&&nearestAP)conds.push(nearestAP.name+'周辺（約'+(nearestAP.dist/1000).toFixed(1)+'km）');
   if(above150)conds.push('地表から'+alt+'m以上の上空');
   if(night)conds.push('夜間飛行');
@@ -1968,7 +2002,7 @@ async function analyze(){
 
   let flowHtml='';
   if(isSpecial){
-    const _hasNonBlanketCond=(did&&!blanketDid)||(inAP9k&&!blanketAp9k)||(above150&&!blanketAlt150)||(night&&!blanketNight)||(bvlos&&!blanketBvlos)||(close&&!blanketClose)||event||drop||heavy||crowd||agri;
+    const _hasNonBlanketCond=(did&&!blanketDid)||(didUnknown&&!blanketDid)||(inAP9k&&!blanketAp9k)||(above150&&!blanketAlt150)||(night&&!blanketNight)||(bvlos&&!blanketBvlos)||(close&&!blanketClose)||event||drop||heavy||crowd||agri;
     const steps=hasBlanket&&!_hasNonBlanketCond?[
       ['機体登録の確認','DIPS2.0で登録番号を確認。未登録なら先に登録を完了する。'],
       ['飛行空域の事前確認','Droneroute・地理院地図で禁止区域・DID・空港圏を確認する。'],
@@ -2212,12 +2246,14 @@ function checkMaintReminder(){
    HISTORY
 ============================================================ */
 function saveHistory(e){let h=[];try{h=JSON.parse(localStorage.getItem(HIST_KEY)||'[]');}catch(x){}h.unshift(e);localStorage.setItem(HIST_KEY,JSON.stringify(h.slice(0,10)));}
+// 履歴の件数欄は0以上の整数だけを表示する（2026-11-16 Codexレビュー: インポートした履歴の件数欄からHTMLが実行できた）
+function histCount(n){return Number.isSafeInteger(n)&&n>=0?String(n):'?';}
 function renderHistory(){
   const el=document.getElementById('history-list');
   let h=[];try{h=JSON.parse(localStorage.getItem(HIST_KEY)||'[]');}catch(x){}
   if(!h.length){el.innerHTML='<div style="color:var(--text3);font-size:13px;padding:10px 0;">まだ履歴がありません。</div>';return;}
   const cm={c1:'var(--green)',c2b:'var(--blue)',c2a:'var(--amber)',c3:'var(--red)',cng:'var(--red)'};
-  el.innerHTML=h.map(e=>'<div class="hist-item"><div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;"><span style="font-size:11px;font-family:var(--mono);color:var(--text3);">'+esc(e.date)+'</span><span style="font-size:12px;font-weight:500;color:'+(cm[e.catKey]||'var(--text2)')+';">'+esc(e.catLabel)+'</span></div><div style="font-size:13px;color:var(--text);margin-bottom:2px;">📍 '+esc(e.address||'（住所未入力）')+'</div><div style="font-size:12px;color:var(--text3);">✈ '+esc(e.airport)+'　条件: '+esc(e.conds)+'</div><div style="font-size:12px;margin-top:2px;"><span style="color:var(--red);">禁止×'+e.stopN+'</span>　<span style="color:var(--amber);">申請!'+e.warnN+'</span></div></div>').join('');
+  el.innerHTML=h.map(e=>'<div class="hist-item"><div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;"><span style="font-size:11px;font-family:var(--mono);color:var(--text3);">'+esc(e.date)+'</span><span style="font-size:12px;font-weight:500;color:'+(cm[e.catKey]||'var(--text2)')+';">'+esc(e.catLabel)+'</span></div><div style="font-size:13px;color:var(--text);margin-bottom:2px;">📍 '+esc(e.address||'（住所未入力）')+'</div><div style="font-size:12px;color:var(--text3);">✈ '+esc(e.airport)+'　条件: '+esc(e.conds)+'</div><div style="font-size:12px;margin-top:2px;"><span style="color:var(--red);">禁止×'+histCount(e.stopN)+'</span>　<span style="color:var(--amber);">申請!'+histCount(e.warnN)+'</span></div></div>').join('');
 }
 function clearHistory(){if(confirm('履歴をすべて削除しますか？')){localStorage.removeItem(HIST_KEY);renderHistory();}}
 
@@ -2388,36 +2424,21 @@ function toggleRouteMode() {
 }
 
 /* DID判定を返すだけのヘルパー（DOM更新なし） */
+/* 単一地点と同じ三値判定（true/false/null=判定不可）を使う
+   （2026-11-16 Codexレビュー: ルート側だけHTTPエラーが「DID外」になっていた） */
 async function getDIDStatus(lat, lon) {
-  try {
-    const delta = 0.0005;
-    const minX = lon-delta, minY = lat-delta, maxX = lon+delta, maxY = lat+delta;
-    const wmsUrl = 'https://cyberjapandata.gsi.go.jp/wms?'
-      + 'SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&LAYERS=did2020&STYLES='
-      + '&CRS=EPSG:4326&BBOX='+minY+','+minX+','+maxY+','+maxX
-      + '&WIDTH=9&HEIGHT=9&FORMAT=image/png&TRANSPARENT=TRUE';
-    const img = new Image(); img.crossOrigin = 'anonymous';
-    await new Promise((res, rej) => { img.onload = res; img.onerror = rej; img.src = wmsUrl; });
-    const canvas = document.createElement('canvas'); canvas.width = 9; canvas.height = 9;
-    canvas.getContext('2d').drawImage(img, 0, 0);
-    const d = canvas.getContext('2d').getImageData(4, 4, 1, 1).data;
-    return d[3] > 10;
-  } catch(e) {
-    try {
-      const zoom = 13, n = Math.pow(2, zoom);
-      const tX = Math.floor((lon+180)/360*n);
-      const sinL = Math.sin(lat*Math.PI/180);
-      const tY = Math.floor((1-Math.log((1+sinL)/(1-sinL))/(2*Math.PI))/2*n);
-      const r = await fetch('https://cyberjapandata.gsi.go.jp/xyz/did2020/'+zoom+'/'+tX+'/'+tY+'.png', {method:'HEAD',mode:'cors'});
-      return r.ok;
-    } catch(e2) { return null; }
-  }
+  const result = await getDIDStatusDetail(lat, lon);
+  return result ? result.did : null;
 }
+
+// ルートの世代番号。clearRoute()で増やし、消したルートの判定結果が新しいルートへ入らないようにする
+let routeGen = 0;
 
 async function addRoutePoint(lat, lon) {
   if (!routeMode) return;
+  const gen = routeGen;
   routePoints.push({lat, lon});
-  routeDIDFlags.push(null); // DID判定待ち
+  routeDIDFlags.push('pending'); // DID判定待ち
   const idx = routePoints.length - 1;
 
   // マーカー追加
@@ -2444,7 +2465,9 @@ async function addRoutePoint(lat, lon) {
     '✏️ 地図をクリックして経由点を追加中... (' + routePoints.length + '点)';
 
   // DID判定（非同期）—完了後に表示更新
-  routeDIDFlags[idx] = await getDIDStatus(lat, lon);
+  const didResult = await getDIDStatus(lat, lon);
+  if (gen !== routeGen) return; // 判定中にルートが消された
+  routeDIDFlags[idx] = didResult;
   updateRouteInfo();
 }
 
@@ -2470,17 +2493,22 @@ function updateRouteInfo() {
   else if (minDist <= 9000) apWarn = ' ⚠ '+minAP.name+' '+apKm+'km（9km圏内）';
 
   // DID判定結果を集計
-  const pendingCount = routeDIDFlags.filter(f => f === null).length;
+  const pendingCount = routeDIDFlags.filter(f => f === 'pending').length;
+  const unknownCount = routeDIDFlags.filter(f => f === null).length;
   const didCount     = routeDIDFlags.filter(f => f === true).length;
   let didWarn = '';
   if (pendingCount > 0)   didWarn = ' ⏳ DID判定中...';
-  else if (didCount > 0)  didWarn = ' ⚠ DID内経由点 ' + didCount + '点';
+  else {
+    if (didCount > 0)     didWarn += ' ⚠ DID内経由点 ' + didCount + '点';
+    if (unknownCount > 0) didWarn += ' ❓ DID判定不可 ' + unknownCount + '点（地理院地図で確認）';
+  }
 
   document.getElementById('route-info').textContent =
     '📏 ルート総距離: ' + km + 'km ｜ 経由点: ' + routePoints.length + '点' + apWarn + didWarn;
 }
 
 function clearRoute() {
+  routeGen++;
   routePoints = [];
   routeDIDFlags = [];
   routeMarkers.forEach(m => map.removeLayer(m));
@@ -2814,9 +2842,14 @@ function buildCSV(logs) {
     e.purpose, e.special || 'なし',
     e.incident, e.note || '',
   ]);
-  const csv = [headers, ...rows].map(r =>
-    r.map(v => '"' + String(v===0 ? '0' : (v||'')).replace(/"/g,'""') + '"').join(',')
-  ).join('\r\n');
+  // 文字列が = + - @ タブ 改行 で始まると表計算ソフトが数式として扱うため、先頭に ' を付けて文字列にする
+  // （2026-11-16 Codexレビュー: CSVインジェクション対策）。数値（飛行時間など）はそのまま出す
+  const cell = v => {
+    let s = String(v===0 ? '0' : (v||''));
+    if (typeof v === 'string' && /^[=+\-@\t\r]/.test(s)) s = "'" + s;
+    return '"' + s.replace(/"/g,'""') + '"';
+  };
+  const csv = [headers, ...rows].map(r => r.map(cell).join(',')).join('\r\n');
   const blob = new Blob(['﻿' + csv], {type:'text/csv;charset=utf-8;'});
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -2866,8 +2899,9 @@ async function buildXLSX(logs) {
     if (!val && val !== 0) return;
     const v = ex(String(val));
     const pat = new RegExp('<c r="' + ref + '" s="([0-9]+)"/>');
-    xml = xml.replace(pat,
-      '<c r="' + ref + '" s="$1" t="inlineStr"><is><t xml:space="preserve">' + v + '</t></is></c>'
+    // 置換は関数で行い、入力中の「$&」「$1」等を置換構文として解釈させない（2026-11-16 Codexレビュー）
+    xml = xml.replace(pat, (_m, style) =>
+      '<c r="' + ref + '" s="' + style + '" t="inlineStr"><is><t xml:space="preserve">' + v + '</t></is></c>'
     );
   };
 
@@ -2926,22 +2960,52 @@ function validateBackupData(data) {
       || !Number.isFinite(Date.parse(data.exportedAt))) {
     throw new Error('invalid format');
   }
-  if (data.pilot !== null && data.pilot !== undefined && !isPlainObject(data.pilot)) {
-    throw new Error('invalid pilot');
+  // 項目の型まで保存前に確認する（2026-11-16 Codexレビュー: 日付が数値等のデータを保存後に描画で失敗し、
+  // 既存データが置き換わったままになっていた）
+  const optStr = v => v === undefined || v === null || typeof v === 'string';
+  const optCount = v => v === undefined || (Number.isSafeInteger(v) && v >= 0);
+  if (data.pilot !== null && data.pilot !== undefined) {
+    if (!isPlainObject(data.pilot)) throw new Error('invalid pilot');
+    for (const [k, v] of Object.entries(data.pilot)) {
+      // 資格・包括申請フラグは真偽値だけ（文字列 "false" を「あり」と扱わない）
+      if (k.startsWith('chk_') ? typeof v !== 'boolean' : !optStr(v)) throw new Error('invalid pilot');
+    }
   }
   if (data.preflight !== undefined && !isPlainObject(data.preflight)) {
     throw new Error('invalid preflight');
   }
-  if (data.flightLog !== undefined
-      && (!Array.isArray(data.flightLog) || data.flightLog.length > 5000
-          || data.flightLog.some(item => !isPlainObject(item) || !Number.isSafeInteger(item.id)))) {
-    throw new Error('invalid flight log');
+  const LOG_STR_KEYS = ['date','takeoffTime','landingTime','from','to','purpose','special','totalTime',
+                        'incident','note','pilotName','pilotCertNo','kikai','model'];
+  if (data.flightLog !== undefined) {
+    if (!Array.isArray(data.flightLog) || data.flightLog.length > 5000) throw new Error('invalid flight log');
+    const ids = new Set();
+    for (const item of data.flightLog) {
+      if (!isPlainObject(item) || !Number.isSafeInteger(item.id)) throw new Error('invalid flight log');
+      // 同じIDが2件あると、1件の削除で両方消えるため拒否する（2026-11-16 Codexレビュー）
+      if (ids.has(item.id)) throw new Error('duplicate flight log id');
+      ids.add(item.id);
+      if (!LOG_STR_KEYS.every(k => optStr(item[k]))) throw new Error('invalid flight log');
+      if (item.duration !== undefined && item.duration !== null
+          && !(Number.isFinite(item.duration) && item.duration >= 0)) throw new Error('invalid flight log');
+    }
   }
-  if (data.history !== undefined
-      && (!Array.isArray(data.history) || data.history.length > 100
-          || data.history.some(item => !isPlainObject(item)))) {
-    throw new Error('invalid history');
+  if (data.history !== undefined) {
+    if (!Array.isArray(data.history) || data.history.length > 100) throw new Error('invalid history');
+    for (const item of data.history) {
+      if (!isPlainObject(item)
+          || !['date','address','catKey','catLabel','airport','conds'].every(k => optStr(item[k]))
+          || !optCount(item.stopN) || !optCount(item.warnN)) {
+        throw new Error('invalid history');
+      }
+    }
   }
+}
+
+function clearPilotForm() {
+  ['name','birth','tel','email','addr','dips','kikai','model','weight','ins','insp-date','ins-expiry'].forEach(k => {
+    const el = document.getElementById('p-' + k); if (el) el.value = '';
+  });
+  document.querySelectorAll('#tab-pilot .chk-item').forEach(el => el.classList.remove('on'));
 }
 
 function importAllData(event) {
@@ -2963,12 +3027,38 @@ function importAllData(event) {
         + '現在のデータは上書きされます。よろしいですか？'
       )) return;
 
-      if (data.pilot)     localStorage.setItem(PILOT_KEY, JSON.stringify(data.pilot));
-      if (data.flightLog) localStorage.setItem(LOG_KEY,   JSON.stringify(data.flightLog));
-      if (data.preflight) localStorage.setItem(PF_KEY,    JSON.stringify(data.preflight));
-      if (data.history)   localStorage.setItem(HIST_KEY,  JSON.stringify(data.history));
+      // 途中で保存に失敗したら（容量不足等）、4つとも元に戻す（部分的な復元を残さない）
+      const keys = [PILOT_KEY, LOG_KEY, PF_KEY, HIST_KEY];
+      const before = keys.map(k => localStorage.getItem(k));
+      try {
+        // pilot が明示的に null のバックアップは「操縦者未登録」なので、今の操縦者情報を消す
+        // （2026-11-16 Codexレビュー: 前の資格・包括申請情報のまま判定されていた）
+        if (data.pilot)              localStorage.setItem(PILOT_KEY, JSON.stringify(data.pilot));
+        else if (data.pilot === null) localStorage.removeItem(PILOT_KEY);
+        if (data.flightLog) localStorage.setItem(LOG_KEY,   JSON.stringify(data.flightLog));
+        if (data.preflight) localStorage.setItem(PF_KEY,    JSON.stringify(data.preflight));
+        if (data.history)   localStorage.setItem(HIST_KEY,  JSON.stringify(data.history));
+      } catch (saveErr) {
+        // まず4つとも消して空きを作ってから、元の値を書き戻す（書き戻しが容量不足で失敗しないように）
+        keys.forEach(k => { try { localStorage.removeItem(k); } catch (x) {} });
+        let restoreOk = true;
+        keys.forEach((k, i) => {
+          if (before[i] === null) return;
+          try { localStorage.setItem(k, before[i]); } catch (x) { restoreOk = false; }
+        });
+        restoreOk = restoreOk && keys.every((k, i) => localStorage.getItem(k) === before[i]);
+        if (restoreOk) {
+          alert('保存に失敗したため、インポートを取り消しました（元のデータのままです）。ブラウザの空き容量を確認してください。');
+        } else {
+          alert('保存に失敗し、元のデータも一部戻せませんでした。インポートしたバックアップファイルは残っているので、空き容量を確保してからもう一度インポートしてください。');
+        }
+        loadPilot(); renderPilotSummary(); renderPreflight(); renderLogList();
+        event.target.value = '';
+        return;
+      }
 
-      // UI更新
+      // UI更新（pilotを含むバックアップでは、前の操縦者の入力・資格チェックが残らないよう先に全部消す）
+      if (data.pilot !== undefined) clearPilotForm();
       loadPilot(); renderPilotSummary(); renderPreflight(); renderLogList();
 
       const notice = document.getElementById('import-notice');
@@ -3015,6 +3105,7 @@ function resetAll(){
   pinCircles.forEach(c=>map.removeLayer(c));pinCircles=[];
   clearRoute();
   if(routeMode) toggleRouteMode();
+  locGen++;didCheckPromise=null;  // 実行中の判定・住所取得の結果を捨てる
   geoLat=null;geoLon=null;autoDID=null;nearestAP=null;majorAP=null;currentPref='';currentCity='';cityHallData=null;
   document.getElementById('loc-hint').style.display='none';
   window.scrollTo({top:0,behavior:'smooth'});
