@@ -2723,16 +2723,19 @@ function renderLogList() {
     + '</div>';
   el.innerHTML = ctrl + logs.map(e => {
     const incColor = e.incident === 'なし' ? 'var(--green)' : 'var(--red)';
+    // idはHTML属性・onclickへ埋め込むため整数だけを使う（2026-11-16 Codexレビュー: インポートした
+    // 不正なidでスクリプトが実行できた）。整数でない古いデータはボタンが効かないだけで表示は続ける
+    const sid = Number.isSafeInteger(e.id) ? e.id : 'null';
     return '<div class="card" style="margin-bottom:10px;">'
       + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;gap:6px;">'
       + '<label style="display:flex;align-items:center;gap:8px;cursor:pointer;min-width:0;">'
-      + '<input type="checkbox" class="log-select-cb" value="'+e.id+'" onchange="updateSelectAll()">'
+      + '<input type="checkbox" class="log-select-cb" value="'+sid+'" onchange="updateSelectAll()">'
       + '<span style="font-size:13px;font-weight:500;color:var(--accent);">'+esc(e.date)+'</span>'
       + '</label>'
       + '<div style="display:flex;gap:5px;flex-shrink:0;">'
-      + '<button onclick="exportOneXLSX('+e.id+')" style="background:rgba(34,211,161,0.1);border:1px solid rgba(34,211,161,.35);color:var(--green);cursor:pointer;font-size:11px;border-radius:var(--r);padding:2px 9px;" title="この1件を様式１出力">📊 出力</button>'
-      + '<button onclick="openEditModal('+e.id+')" style="background:transparent;border:1px solid var(--border2);color:var(--accent);cursor:pointer;font-size:11px;border-radius:var(--r);padding:2px 9px;">✏️ 編集</button>'
-      + '<button onclick="deleteLog('+e.id+')" style="background:transparent;border:none;color:var(--text3);cursor:pointer;font-size:11px;">🗑</button>'
+      + '<button onclick="exportOneXLSX('+sid+')" style="background:rgba(34,211,161,0.1);border:1px solid rgba(34,211,161,.35);color:var(--green);cursor:pointer;font-size:11px;border-radius:var(--r);padding:2px 9px;" title="この1件を様式１出力">📊 出力</button>'
+      + '<button onclick="openEditModal('+sid+')" style="background:transparent;border:1px solid var(--border2);color:var(--accent);cursor:pointer;font-size:11px;border-radius:var(--r);padding:2px 9px;">✏️ 編集</button>'
+      + '<button onclick="deleteLog('+sid+')" style="background:transparent;border:none;color:var(--text3);cursor:pointer;font-size:11px;">🗑</button>'
       + '</div>'
       + '</div>'
       + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:12px;color:var(--text2);">'
@@ -2931,7 +2934,7 @@ function validateBackupData(data) {
   }
   if (data.flightLog !== undefined
       && (!Array.isArray(data.flightLog) || data.flightLog.length > 5000
-          || data.flightLog.some(item => !isPlainObject(item)))) {
+          || data.flightLog.some(item => !isPlainObject(item) || !Number.isSafeInteger(item.id)))) {
     throw new Error('invalid flight log');
   }
   if (data.history !== undefined

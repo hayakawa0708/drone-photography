@@ -35,6 +35,12 @@ class LawBaselineTests(unittest.TestCase):
         self.assertIn("else if(r.status===404)autoDID=false;", HTML)
         self.assertNotIn("autoDID=r.ok;", HTML)
 
+    def test_flight_log_ids_are_integers_before_html_embedding(self):
+        # 2026-11-16 Codexレビュー: インポートした不正なidがonclickへ直接埋め込まれXSSになっていた
+        self.assertNotIn("'+e.id+'", HTML)
+        self.assertIn("const sid = Number.isSafeInteger(e.id) ? e.id : 'null';", HTML)
+        self.assertIn("!isPlainObject(item) || !Number.isSafeInteger(item.id)", HTML)
+
     def test_law_status_matches_app(self):
         status = json.loads((ROOT / "law_status.json").read_text(encoding="utf-8"))
         self.assertEqual(status["app_version"], "6.3.1")
