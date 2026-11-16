@@ -23,6 +23,18 @@ class LawBaselineTests(unittest.TestCase):
         self.assertNotIn("minMajor<=300", HTML)
         self.assertNotIn("minDist <= 300", HTML)
 
+    def test_unknown_did_is_not_treated_as_outside_did(self):
+        # 2026-11-16 Codexレビュー: DID判定の失敗・未完了がカテゴリーⅠ（特定飛行に該当しない）に流れていた
+        self.assertIn("const didUnknown=autoDID!==true&&autoDID!==false;", HTML)
+        self.assertIn("if(didUnknown&&catKey==='c1')", HTML)
+        self.assertIn("key:'did-unknown'", HTML)
+        # 判定ボタン押下時は実行中のDID判定を待つ
+        self.assertIn("didCheckPromise=checkDID(lat,lon);", HTML)
+        self.assertIn("await Promise.race([didCheckPromise,", HTML)
+        # 予備判定はタイルが無い（404）ときだけDID外。サーバーエラーで「DID外」にしない
+        self.assertIn("else if(r.status===404)autoDID=false;", HTML)
+        self.assertNotIn("autoDID=r.ok;", HTML)
+
     def test_law_status_matches_app(self):
         status = json.loads((ROOT / "law_status.json").read_text(encoding="utf-8"))
         self.assertEqual(status["app_version"], "6.3.1")

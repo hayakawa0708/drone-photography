@@ -935,6 +935,7 @@ function esc(s){
    STATE
 ============================================================ */
 let geoLat=null,geoLon=null,autoDID=null,nearestAP=null,majorAP=null;
+let didCheckPromise=null;  // 判定ボタン押下時に、実行中のDID判定の完了を待つため
 let mapMarker=null,currentPref='',currentCity='';
 let cityHallData=null;
 
@@ -1310,7 +1311,7 @@ function setLocation(lat,lon){
   document.getElementById('badge-did').textContent='⏳ DID判定中...';
   document.getElementById('badge-ap').className='dbadge db-spin';
   document.getElementById('badge-ap').textContent='⏳ 空港チェック中...';
-  checkDID(lat,lon);
+  didCheckPromise=checkDID(lat,lon);
   checkAirports(lat,lon);
   fetchWeather(lat,lon);
   updateStepGuide();
@@ -1463,7 +1464,11 @@ async function checkDID(lat,lon){
       const sinL=Math.sin(lat*Math.PI/180);
       const tY=Math.floor((1-Math.log((1+sinL)/(1-sinL))/(2*Math.PI))/2*n);
       const r=await fetch('https://cyberjapandata.gsi.go.jp/xyz/did2020/'+zoom+'/'+tX+'/'+tY+'.png',{method:'HEAD',mode:'cors'});
-      autoDID=r.ok;
+      // タイルが無い（404）ときだけDID外。サーバーエラー等は判定不明として扱う
+      // （2026-11-16 Codexレビュー: 500等でも「DID外」と表示されていた）
+      if(r.ok)autoDID=true;
+      else if(r.status===404)autoDID=false;
+      else throw new Error('DID tile check failed: HTTP '+r.status);
       badge.className=autoDID?'dbadge db-yes':'dbadge db-no';
       badge.textContent=autoDID?'⚠ DID可能性あり（地理院地図で要確認）':'✓ DID外';
     }catch(e2){
@@ -1514,6 +1519,10 @@ function cv(id){const el=document.querySelector('[data-id="'+id+'"]');return el?
 ============================================================ */
 async function analyze(){
   if(!geoLat||!geoLon){alert('先に飛行場所を入力または地図上でクリックしてください。');return;}
+  // DID判定がまだ終わっていなければ最大10秒待つ（それでも終わらなければ「DID未確認」として結果に出す）
+  if(didCheckPromise&&autoDID===null){
+    await Promise.race([didCheckPromise,new Promise(r=>setTimeout(r,10000))]);
+  }
   // 市区町村名が未取得の場合は先に取得
   if(!currentCity) await reverseGeocodeState(geoLat,geoLon);
   // 市役所情報が未取得の場合はここで待機
@@ -1548,6 +1557,9 @@ async function analyze(){
                ||locFarm||locForest||locHeritage||locSchool||locSports;
 
   const did=autoDID===true,inAP9k=nearestAP&&nearestAP.dist<=9000;
+  // DID判定が失敗・未完了（autoDID===null）のときは「DID外」と同じ扱いにせず、要確認として明示する
+  // （2026-11-16 Codexレビュー: 判定不明でもカテゴリーⅠ「特定飛行に該当しません」と出ていた）
+  const didUnknown=autoDID!==true&&autoDID!==false;
   const inTargetAirportZone=majorAP!==null;
   const alt=parseInt(document.getElementById('altitude').value)||0;
   const above150=alt>=150;
@@ -1567,8 +1579,14 @@ async function analyze(){
   else if(isSpecial||inTargetAirportZone||river||park){catKey='c2b';catLabel='カテゴリー ⅡB / ⅡA';{const _c2bCov=(!did||blanketDid)&&(!night||blanketNight)&&(!bvlos||blanketBvlos)&&(!close||blanketClose);catDesc=_c2bCov?'特定飛行に該当します。航空法の許可・承認申請は包括申請で対応済みです（飛行計画の通報は毎回必要）。':'特定飛行に該当します。DIPS2.0での許可・承認申請が必要です。';}}
   else{catKey='c1';catLabel='カテゴリー Ⅰ';catDesc='特定飛行に該当しません。DIPS許可申請・飛行計画通報の法的義務はありませんが機体登録とルール遵守は必須です。飛行計画の事前登録を習慣化することを推奨します。';}
 
+  if(didUnknown&&catKey==='c1'){
+    catLabel='カテゴリー Ⅰ（DID未確認・要確認）';
+    catDesc='DID（人口集中地区）かどうかを自動判定できませんでした。地理院地図でDID外と確認できた場合のみカテゴリーⅠです。DID内なら特定飛行となり、DIPS2.0での許可申請が必要です。';
+  }
+
   /* チェックリスト */
   const reqs=[];
+  if(didUnknown){reqs.push({t:'stop',key:'did-unknown',title:'DID判定ができていません：地理院地図で要確認',detail:'通信エラー等でDID（人口集中地区）の自動判定が完了していません。地理院地図のDIDレイヤーで飛行場所を確認し、DID内なら許可申請が必要です。'});}
   reqs.push({t:'ok',key:'reg',title:'機体登録（全飛行必須）',detail:'100g以上すべての機体が対象。DIPS2.0で登録し機体に登録記号を表示する。未登録は罰則あり。'});
   reqs.push({t:'ok',key:'airspace',title:'飛行前の空域確認（全飛行必須）',detail:'DIPS2.0またはDroneroute・地理院地図で緊急用務空域・飛行禁止空域を飛行直前に確認する。'});
   if(did){reqs.push(blanketDid?{t:'ok',key:'did',title:'DID上空：包括申請で対応済み ✓',detail:'包括申請にDID上空が含まれていれば個別申請は不要です。飛行の都度DIPS2.0で飛行計画を通報してください。'}:hasCert2||hasCert1?{t:'warn',key:'did',title:'DID上空：DIPS2.0で許可申請',detail:'二等（または一等）資格を保有しているため申請要件は満たします。飛行10営業日前までに申請。'}:{t:'stop',key:'did',title:'DID上空：DIPS2.0で許可申請＋資格確認要',detail:'飛行10営業日前までに申請必須。技能証明書を添付すること。'});}
